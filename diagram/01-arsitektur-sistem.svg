@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 760" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 z" fill="#334155"/>
+    </marker>
+    <style>
+      .box{fill:#fff;stroke:#334155;stroke-width:1.6;rx:10}
+      .title{font-size:15px;font-weight:bold;fill:#0f172a}
+      .small{font-size:12px;fill:#334155}
+      .tiny{font-size:11px;fill:#475569}
+      .lbl{font-size:11px;fill:#0f172a;font-weight:bold}
+      .layer{font-size:13px;font-weight:bold;fill:#64748b}
+    </style>
+  </defs>
+
+  <rect width="1100" height="760" fill="#f8fafc"/>
+  <text x="550" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f172a">Arsitektur Sistem Smart PPSU</text>
+  <text x="550" y="54" text-anchor="middle" class="tiny">Next.js (PWA) + Firebase (data teks) + Supabase (foto ter-resize) + Vercel (hosting)</text>
+
+  <!-- CLIENT LAYER -->
+  <rect x="40" y="80" width="1020" height="150" rx="12" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="60" y="102" class="layer">LAPISAN KLIEN — PWA (browser HP / laptop, installable)</text>
+
+  <rect x="90" y="115" width="280" height="95" rx="10" class="box"/>
+  <text x="230" y="138" text-anchor="middle" class="title">Petugas PPSU (HP di zona)</text>
+  <text x="230" y="158" text-anchor="middle" class="small">PWA mobile: absensi kamera + GPS,</text>
+  <text x="230" y="174" text-anchor="middle" class="small">foto progres 0/50/100%, absen pulang</text>
+  <text x="230" y="196" text-anchor="middle" class="tiny">getUserMedia (kamera) + Geolocation API</text>
+
+  <rect x="430" y="115" width="280" height="95" rx="10" class="box"/>
+  <text x="570" y="138" text-anchor="middle" class="title">Kasi Ekbang (laptop/kantor)</text>
+  <text x="570" y="158" text-anchor="middle" class="small">Dashboard monitoring real-time,</text>
+  <text x="570" y="174" text-anchor="middle" class="small">input skor 25 indikator, laporan/monev</text>
+  <text x="570" y="196" text-anchor="middle" class="tiny">export PDF &amp; Excel otomatis</text>
+
+  <!-- SERVER LAYER -->
+  <rect x="40" y="280" width="1020" height="120" rx="12" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="60" y="302" class="layer">LAPISAN APLIKASI — Next.js di Vercel</text>
+
+  <rect x="330" y="315" width="440" height="70" rx="10" class="box"/>
+  <text x="550" y="340" text-anchor="middle" class="title">Next.js App (PWA, App Router)</text>
+  <text x="550" y="358" text-anchor="middle" class="small">UI + validasi geofence zona + watermark kanvas + resize foto</text>
+  <text x="550" y="374" text-anchor="middle" class="small">API routes: hitung SMART, normalisasi bobot, rekap bulanan</text>
+
+  <!-- DATA LAYER -->
+  <rect x="40" y="450" width="1020" height="200" rx="12" fill="#fff7ed" stroke="#fed7aa"/>
+  <text x="60" y="472" class="layer">LAPISAN DATA</text>
+
+  <rect x="90" y="490" width="290" height="140" rx="10" class="box"/>
+  <text x="235" y="513" text-anchor="middle" class="title">Firebase Auth</text>
+  <text x="235" y="533" text-anchor="middle" class="small">Login email/password</text>
+  <text x="235" y="549" text-anchor="middle" class="small">2 peran: petugas_ppsu,</text>
+  <text x="235" y="565" text-anchor="middle" class="small">kasi_ekbang (custom claims)</text>
+
+  <rect x="430" y="490" width="290" height="140" rx="10" class="box"/>
+  <text x="575" y="513" text-anchor="middle" class="title">Firestore (data teks)</text>
+  <text x="575" y="533" text-anchor="middle" class="small">users, zona, penugasan, absensi,</text>
+  <text x="575" y="549" text-anchor="middle" class="small">progres_foto, penilaian, nilai_akhir</text>
+  <text x="575" y="571" text-anchor="middle" class="tiny">time mark dari server = waktu server (anti-manipulasi)</text>
+  <text x="575" y="588" text-anchor="middle" class="tiny">realtime listener → dashboard monitoring</text>
+
+  <rect x="760" y="490" width="270" height="140" rx="10" class="box"/>
+  <text x="895" y="513" text-anchor="middle" class="title">Supabase Storage</text>
+  <text x="895" y="533" text-anchor="middle" class="small">Foto hasil resize (±300KB)</text>
+  <text x="895" y="549" text-anchor="middle" class="small">watermark terbakar: time mark,</text>
+  <text x="895" y="565" text-anchor="middle" class="small">koordinat, nama petugas</text>
+  <text x="895" y="586" text-anchor="middle" class="tiny">petugas: upload saja (tanpa hapus/timpa)</text>
+  <text x="895" y="602" text-anchor="middle" class="tiny">Kasi Ekbang: CRUD penuh</text>
+
+  <!-- arrows client -> app -->
+  <line x1="230" y1="210" x2="480" y2="315" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="570" y1="210" x2="600" y2="315" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <!-- arrows app -> data -->
+  <line x1="470" y1="385" x2="270" y2="490" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="550" y1="385" x2="570" y2="490" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+  <line x1="650" y1="385" x2="880" y2="490" stroke="#334155" stroke-width="1.6" marker-end="url(#arr)"/>
+
+  <text x="350" y="445" class="lbl">auth session</text>
+  <text x="520" y="445" class="lbl">data teks + metadata foto</text>
+  <text x="780" y="445" class="lbl">upload foto (binary)</text>
+
+  <!-- anti-manipulation strip -->
+  <rect x="40" y="678" width="1020" height="76" rx="10" fill="#fef2f2" stroke="#fecaca"/>
+  <text x="60" y="700" class="lbl" fill="#b91c1c">Lapis anti-manipulasi:</text>
+  <text x="60" y="720" class="small" fill="#7f1d1d">1) Time mark dari server Firestore (jam HP tidak berpengaruh)   2) Foto hanya dari kamera live, tanpa galeri   3) Geofencing radius zona</text>
+  <text x="60" y="740" class="small" fill="#7f1d1d">4) Watermark terbakar ke pixel foto   5) Hash SHA-256 foto disimpan untuk verifikasi integritas</text>
+</svg>

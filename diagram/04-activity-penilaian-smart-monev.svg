@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 1250" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 z" fill="#334155"/>
+    </marker>
+    <style>
+      .act{fill:#fff;stroke:#d97706;stroke-width:1.5}
+      .sys{fill:#f0fdf4;stroke:#16a34a;stroke-width:1.5}
+      .calc{fill:#eff6ff;stroke:#2563eb;stroke-width:1.5}
+      .dec{fill:#fefce8;stroke:#ca8a04;stroke-width:1.5}
+      .t{font-size:12px;fill:#0f172a;text-anchor:middle}
+      .ts{font-size:10.5px;fill:#475569;text-anchor:middle}
+      .lane{font-size:15px;font-weight:bold;fill:#334155;text-anchor:middle}
+      .flow{stroke:#334155;stroke-width:1.5;fill:none}
+      .formula{font-size:12px;fill:#1e3a8a;font-style:italic}
+    </style>
+  </defs>
+  <rect width="1150" height="1250" fill="#f8fafc"/>
+  <text x="575" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f172a">Activity Diagram — Penilaian SMART &amp; Laporan/Monev Otomatis</text>
+
+  <!-- lanes -->
+  <rect x="60" y="60" width="430" height="1160" fill="#fffbeb" stroke="#fde68a"/>
+  <rect x="490" y="60" width="600" height="1160" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="275" y="86" class="lane">KASI EKBANG</text>
+  <text x="790" y="86" class="lane">SISTEM (otomatis, tanpa hitung manual)</text>
+
+  <!-- start -->
+  <circle cx="275" cy="120" r="12" fill="#0f172a"/>
+
+  <!-- K1 -->
+  <rect x="145" y="145" width="260" height="50" rx="10" class="act"/>
+  <text x="275" y="165" class="t">Tetapkan periode penilaian (12 bulan),</text>
+  <text x="275" y="180" class="t">daftar petugas &amp; cakupan penugasan</text>
+  <line x1="275" y1="132" x2="275" y2="145" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S1 -->
+  <rect x="630" y="145" width="320" height="52" rx="10" class="sys"/>
+  <text x="790" y="164" class="t">Sistem kumpulkan bukti per petugas otomatis:</text>
+  <text x="790" y="179" class="ts">rekap absensi, penugasan selesai/tertunda, foto progres,</text>
+  <text x="790" y="192" class="ts">laporan kendala — semua sudah tertaut sejak awal periode</text>
+  <path d="M405 170 L630 170" class="flow" marker-end="url(#arr)"/>
+
+  <!-- K2 -->
+  <rect x="145" y="245" width="260" height="56" rx="10" class="act"/>
+  <text x="275" y="264" class="t">Buka halaman penilaian per petugas,</text>
+  <text x="275" y="279" class="t">beri skor 1–5 tiap indikator (25 indikator)</text>
+  <text x="275" y="293" class="ts">bukti foto/absensi tampil di samping tiap indikator</text>
+  <path d="M790 197 L790 273 L405 273" class="flow" marker-end="url(#arr)"/>
+
+  <!-- decision -->
+  <polygon points="790,330 950,385 790,440 630,385" class="dec"/>
+  <text x="790" y="380" class="t">Indikator dapat</text>
+  <text x="790" y="395" class="t">diamati periode ini?</text>
+  <path d="M405 285 L480 285 L480 385 L630 385" class="flow" marker-end="url(#arr)"/>
+
+  <!-- N/A branch -->
+  <rect x="960" y="348" width="120" height="74" rx="10" class="sys"/>
+  <text x="1020" y="370" class="t">Status</text>
+  <text x="1020" y="385" class="t">"tidak dinilai"</text>
+  <text x="1020" y="400" class="ts">+ alasan wajib diisi</text>
+  <line x1="950" y1="385" x2="960" y2="385" class="flow" marker-end="url(#arr)"/>
+  <text x="953" y="375" class="ts" text-anchor="start">TIDAK</text>
+
+  <!-- S2 scoring saved -->
+  <rect x="630" y="470" width="320" height="52" rx="10" class="sys"/>
+  <text x="790" y="489" class="t">Skor tersimpan; jika ada "tidak dinilai",</text>
+  <text x="790" y="504" class="ts">bobot dinormalisasi ulang secara konsisten &amp; dicatat</text>
+  <line x1="790" y1="440" x2="790" y2="470" class="flow" marker-end="url(#arr)"/>
+  <text x="800" y="460" class="ts" text-anchor="start">YA</text>
+  <path d="M1020 422 L1020 540 L950 540 L950 505" class="flow" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+
+  <!-- calc steps -->
+  <rect x="630" y="555" width="320" height="44" rx="10" class="calc"/>
+  <text x="790" y="574" class="t">Langkah 1 — Nilai tiap kriteria (C1..C5)</text>
+  <text x="790" y="589" class="formula" text-anchor="middle">Cj = (jumlah skor 5 indikator) / 5</text>
+  <line x1="790" y1="522" x2="790" y2="555" class="flow" marker-end="url(#arr)"/>
+
+  <rect x="630" y="630" width="320" height="44" rx="10" class="calc"/>
+  <text x="790" y="649" class="t">Langkah 2 — Normalisasi bobot</text>
+  <text x="790" y="664" class="formula" text-anchor="middle">Wj = bobot / 100 → 0,15; 0,25; 0,25; 0,15; 0,20</text>
+  <line x1="790" y1="599" x2="790" y2="630" class="flow" marker-end="url(#arr)"/>
+
+  <rect x="630" y="705" width="320" height="44" rx="10" class="calc"/>
+  <text x="790" y="724" class="t">Langkah 3 — Nilai utilitas (arah benefit)</text>
+  <text x="790" y="739" class="formula" text-anchor="middle">Uj = (Cj − 1) / (5 − 1)</text>
+  <line x1="790" y1="674" x2="790" y2="705" class="flow" marker-end="url(#arr)"/>
+
+  <rect x="630" y="780" width="320" height="44" rx="10" class="calc"/>
+  <text x="790" y="799" class="t">Langkah 4 — Nilai akhir (skala 0–100)</text>
+  <text x="790" y="814" class="formula" text-anchor="middle">Nilai Akhir = Σ (Wj × Uj) × 100</text>
+  <line x1="790" y1="749" x2="790" y2="780" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S3 result -->
+  <rect x="630" y="855" width="320" height="56" rx="10" class="sys"/>
+  <text x="790" y="874" class="t">Halaman Laporan/Monev langsung terisi otomatis:</text>
+  <text x="790" y="889" class="ts">nilai akhir per petugas, peringkat, rekap kehadiran,</text>
+  <text x="790" y="902" class="ts">kelengkapan dokumentasi — rekap periode penilaian penuh jadi</text>
+  <line x1="790" y1="824" x2="790" y2="855" class="flow" marker-end="url(#arr)"/>
+
+  <!-- K3 -->
+  <rect x="145" y="940" width="260" height="50" rx="10" class="act"/>
+  <text x="275" y="960" class="t">Periksa hasil, beri kesempatan klarifikasi</text>
+  <text x="275" y="975" class="t">atas kesalahan data faktual</text>
+  <path d="M790 911 L790 965 L405 965" class="flow" marker-end="url(#arr)"/>
+
+  <!-- decision 2 -->
+  <polygon points="790,990 950,1045 790,1100 630,1045" class="dec"/>
+  <text x="790" y="1040" class="t">Ada koreksi data</text>
+  <text x="790" y="1055" class="t">faktual?</text>
+  <path d="M405 990 L405 1045 L630 1045" class="flow" marker-end="url(#arr)"/>
+
+  <!-- loop back -->
+  <path d="M950 1045 L1115 1045 L1115 258 L405 258" class="flow" stroke-dasharray="5,4" marker-end="url(#arr)"/>
+  <text x="970" y="1032" class="ts" text-anchor="start">YA → input ulang skor terkait</text>
+
+  <!-- final -->
+  <rect x="630" y="1130" width="320" height="56" rx="10" class="sys"/>
+  <text x="790" y="1149" class="t">Hasil final: sampaikan ke petugas &amp; pihak berwenang,</text>
+  <text x="790" y="1164" class="ts">export PDF &amp; Excel sekali klik — tanpa hitung manual</text>
+  <line x1="790" y1="1100" x2="790" y2="1130" class="flow" marker-end="url(#arr)"/>
+  <text x="800" y="1120" class="ts" text-anchor="start">TIDAK</text>
+
+  <circle cx="790" cy="1210" r="11" fill="none" stroke="#0f172a" stroke-width="3"/>
+  <circle cx="790" cy="1210" r="6" fill="#0f172a"/>
+  <line x1="790" y1="1186" x2="790" y2="1198" class="flow" marker-end="url(#arr)"/>
+</svg>

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 860" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .actor{fill:#fff;stroke:#0f172a;stroke-width:1.8}
+      .uc{fill:#eff6ff;stroke:#2563eb;stroke-width:1.4}
+      .uck{fill:#fef3c7;stroke:#d97706;stroke-width:1.4}
+      .uct{font-size:12px;fill:#0f172a;text-anchor:middle}
+      .ucs{font-size:10px;fill:#475569;text-anchor:middle}
+      .name{font-size:14px;font-weight:bold;fill:#0f172a;text-anchor:middle}
+      .names{font-size:11px;fill:#475569;text-anchor:middle}
+      .line{stroke:#64748b;stroke-width:1.3}
+    </style>
+  </defs>
+  <rect width="1100" height="860" fill="#f8fafc"/>
+  <text x="550" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f172a">Use Case Diagram — Smart PPSU</text>
+
+  <!-- system boundary -->
+  <rect x="270" y="60" width="560" height="780" rx="12" fill="#ffffff" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="550" y="84" text-anchor="middle" font-size="14" font-weight="bold" fill="#334155">Sistem Smart PPSU</text>
+
+  <!-- actor Petugas (left) -->
+  <g transform="translate(140,360)">
+    <circle cx="0" cy="-70" r="18" class="actor"/>
+    <line x1="0" y1="-52" x2="0" y2="10" class="actor"/>
+    <line x1="-25" y1="-30" x2="25" y2="-30" class="actor"/>
+    <line x1="0" y1="10" x2="-22" y2="55" class="actor"/>
+    <line x1="0" y1="10" x2="22" y2="55" class="actor"/>
+    <text x="0" y="90" class="name">Petugas PPSU</text>
+    <text x="0" y="106" class="names">(di zona/jalan)</text>
+  </g>
+
+  <!-- actor Kasi Ekbang (right) -->
+  <g transform="translate(960,360)">
+    <circle cx="0" cy="-70" r="18" class="actor"/>
+    <line x1="0" y1="-52" x2="0" y2="10" class="actor"/>
+    <line x1="-25" y1="-30" x2="25" y2="-30" class="actor"/>
+    <line x1="0" y1="10" x2="-22" y2="55" class="actor"/>
+    <line x1="0" y1="10" x2="22" y2="55" class="actor"/>
+    <text x="0" y="90" class="name">Kasi Ekbang</text>
+    <text x="0" y="106" class="names">(admin &amp; penilai)</text>
+  </g>
+
+  <!-- shared use case -->
+  <ellipse cx="550" cy="112" rx="130" ry="26" class="uc"/>
+  <text x="550" y="116" class="uct">Login / autentikasi</text>
+
+  <!-- petugas use cases -->
+  <ellipse cx="550" cy="180" rx="155" ry="28" class="uc"/>
+  <text x="550" y="176" class="uct">Absen masuk / pulang</text>
+  <text x="550" y="190" class="ucs">(kamera + GPS + time mark server)</text>
+
+  <ellipse cx="550" cy="246" rx="155" ry="28" class="uc"/>
+  <text x="550" y="242" class="uct">Absen istirahat (mulai &amp; selesai)</text>
+  <text x="550" y="256" class="ucs">(kamera + GPS + time mark server)</text>
+
+  <ellipse cx="550" cy="312" rx="155" ry="26" class="uc"/>
+  <text x="550" y="316" class="uct">Lihat penugasan &amp; zona hari ini</text>
+
+  <ellipse cx="550" cy="378" rx="155" ry="28" class="uc"/>
+  <text x="550" y="374" class="uct">Upload foto progres 0% / 50% / 100%</text>
+  <text x="550" y="388" class="ucs">(geotag + watermark, tanpa galeri)</text>
+
+  <ellipse cx="550" cy="444" rx="155" ry="26" class="uc"/>
+  <text x="550" y="448" class="uct">Lapor kendala / kondisi berbahaya</text>
+
+  <ellipse cx="550" cy="510" rx="155" ry="26" class="uc"/>
+  <text x="550" y="514" class="uct">Lihat riwayat &amp; nilai kinerja sendiri</text>
+
+  <!-- kasi ekbang use cases -->
+  <ellipse cx="550" cy="576" rx="155" ry="26" class="uck"/>
+  <text x="550" y="580" class="uct">Kelola zona, petugas &amp; penugasan</text>
+
+  <ellipse cx="550" cy="642" rx="155" ry="28" class="uck"/>
+  <text x="550" y="638" class="uct">Monitoring real-time</text>
+  <text x="550" y="652" class="ucs">(peta lokasi, absensi, progres)</text>
+
+  <ellipse cx="550" cy="708" rx="155" ry="28" class="uck"/>
+  <text x="550" y="704" class="uct">Input skor 5 kriteria × 25 indikator</text>
+  <text x="550" y="718" class="ucs">(bukti foto/absensi tertaut otomatis)</text>
+
+  <ellipse cx="550" cy="774" rx="155" ry="28" class="uck"/>
+  <text x="550" y="770" class="uct">Laporan / monev otomatis</text>
+  <text x="550" y="784" class="ucs">(nilai SMART + ranking + export PDF/Excel)</text>
+
+  <!-- associations petugas -->
+  <line x1="168" y1="330" x2="422" y2="114" class="line"/>
+  <line x1="168" y1="345" x2="398" y2="180" class="line"/>
+  <line x1="170" y1="355" x2="398" y2="246" class="line"/>
+  <line x1="170" y1="365" x2="398" y2="312" class="line"/>
+  <line x1="170" y1="375" x2="398" y2="378" class="line"/>
+  <line x1="170" y1="385" x2="398" y2="444" class="line"/>
+  <line x1="170" y1="395" x2="398" y2="508" class="line"/>
+
+  <!-- associations kasi ekbang -->
+  <line x1="932" y1="330" x2="678" y2="114" class="line"/>
+  <line x1="932" y1="345" x2="700" y2="574" class="line"/>
+  <line x1="932" y1="360" x2="700" y2="640" class="line"/>
+  <line x1="932" y1="375" x2="700" y2="706" class="line"/>
+  <line x1="932" y1="390" x2="700" y2="772" class="line"/>
+</svg>

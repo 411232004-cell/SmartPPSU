@@ -1,0 +1,9 @@
+{
+  "name": "Smart PPSU — Kelurahan Duri Selatan",
+  "short_name": "Smart PPSU",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff7f0",
+  "theme_color": "#ff8c42",
+  "icons": []
+}

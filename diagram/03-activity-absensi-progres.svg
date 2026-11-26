@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1150 1180" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <path d="M0,0 L8,3 L0,6 z" fill="#334155"/>
+    </marker>
+    <style>
+      .act{fill:#fff;stroke:#2563eb;stroke-width:1.5}
+      .sys{fill:#f0fdf4;stroke:#16a34a;stroke-width:1.5}
+      .dec{fill:#fefce8;stroke:#ca8a04;stroke-width:1.5}
+      .t{font-size:12px;fill:#0f172a;text-anchor:middle}
+      .ts{font-size:10.5px;fill:#475569;text-anchor:middle}
+      .lane{font-size:15px;font-weight:bold;fill:#334155;text-anchor:middle}
+      .flow{stroke:#334155;stroke-width:1.5;fill:none}
+    </style>
+  </defs>
+  <rect width="1150" height="1180" fill="#f8fafc"/>
+  <text x="575" y="34" text-anchor="middle" font-size="20" font-weight="bold" fill="#0f172a">Activity Diagram — Absensi &amp; Progres Pekerjaan (Petugas di Zona)</text>
+
+  <!-- lanes -->
+  <rect x="60" y="60" width="430" height="1090" fill="#eff6ff" stroke="#bfdbfe"/>
+  <rect x="490" y="60" width="600" height="1090" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="275" y="86" class="lane">PETUGAS PPSU</text>
+  <text x="790" y="86" class="lane">SISTEM (Next.js + Firebase + Supabase)</text>
+
+  <!-- start -->
+  <circle cx="275" cy="120" r="12" fill="#0f172a"/>
+
+  <!-- P1 -->
+  <rect x="170" y="145" width="210" height="42" rx="20" class="act"/>
+  <text x="275" y="170" class="t">Login ke aplikasi PWA</text>
+  <line x1="275" y1="132" x2="275" y2="145" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S1 -->
+  <rect x="640" y="145" width="300" height="42" rx="20" class="sys"/>
+  <text x="790" y="162" class="t">Verifikasi akun &amp; peran (Firebase Auth)</text>
+  <text x="790" y="177" class="ts">muat zona + penugasan hari ini</text>
+  <path d="M380 166 L640 166" class="flow" marker-end="url(#arr)"/>
+
+  <!-- P2 -->
+  <rect x="170" y="220" width="210" height="42" rx="20" class="act"/>
+  <text x="275" y="237" class="t">Lihat zona &amp; daftar tugas,</text>
+  <text x="275" y="252" class="t">tekan "Absen Masuk"</text>
+  <path d="M790 187 L790 241 L380 241" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S2 -->
+  <rect x="640" y="295" width="300" height="52" rx="10" class="sys"/>
+  <text x="790" y="314" class="t">Buka kamera live (tanpa akses galeri)</text>
+  <text x="790" y="329" class="ts">+ ambil koordinat GPS saat itu juga</text>
+  <text x="790" y="342" class="ts">+ time mark dari server Firestore</text>
+  <path d="M275 262 L275 321 L640 321" class="flow" marker-end="url(#arr)"/>
+
+  <!-- P3 -->
+  <rect x="170" y="380" width="210" height="42" rx="20" class="act"/>
+  <text x="275" y="405" class="t">Ambil foto selfie absensi</text>
+  <path d="M790 347 L790 401 L380 401" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S3 -->
+  <rect x="640" y="455" width="300" height="64" rx="10" class="sys"/>
+  <text x="790" y="474" class="t">Resize foto → bakar watermark ke pixel</text>
+  <text x="790" y="489" class="ts">(time mark server + koordinat + nama petugas)</text>
+  <text x="790" y="504" class="ts">hitung hash SHA-256 foto</text>
+  <path d="M380 401 L640 474" class="flow" marker-end="url(#arr)"/>
+
+  <!-- decision -->
+  <polygon points="790,545 940,600 790,655 640,600" class="dec"/>
+  <text x="790" y="596" class="t">GPS di dalam radius</text>
+  <text x="790" y="611" class="t">zona tugas?</text>
+  <line x1="790" y1="519" x2="790" y2="545" class="flow" marker-end="url(#arr)"/>
+
+  <!-- reject branch -->
+  <rect x="950" y="560" width="130" height="80" rx="10" class="sys" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="1015" y="585" class="t" fill="#b91c1c">Tolak absensi,</text>
+  <text x="1015" y="600" class="t" fill="#b91c1c">tampilkan alasan</text>
+  <text x="1015" y="618" class="ts">catat percobaan</text>
+  <text x="1015" y="631" class="ts">di luar zona</text>
+  <line x1="940" y1="600" x2="950" y2="600" class="flow" marker-end="url(#arr)"/>
+  <text x="945" y="590" class="ts" text-anchor="start">TIDAK</text>
+  <path d="M1015 560 L1015 250 L960 250 L960 200 L790 200 L790 187" class="flow" marker-end="url(#arr)" stroke-dasharray="5,4"/>
+
+  <!-- accept -->
+  <rect x="640" y="690" width="300" height="52" rx="10" class="sys"/>
+  <text x="790" y="709" class="t">Upload foto ke Supabase + simpan metadata</text>
+  <text x="790" y="724" class="ts">(waktu server, GPS, hash) ke Firestore</text>
+  <text x="790" y="737" class="ts">→ absensi sah, tampil di dashboard Kasi Ekbang real-time</text>
+  <line x1="790" y1="655" x2="790" y2="690" class="flow" marker-end="url(#arr)"/>
+  <text x="800" y="675" class="ts" text-anchor="start">YA</text>
+
+  <!-- P4 kerja + progres -->
+  <rect x="130" y="770" width="290" height="56" rx="10" class="act"/>
+  <text x="275" y="790" class="t">Kerjakan tugas, upload foto progres</text>
+  <text x="275" y="805" class="t">0% (awal) → 50% → 100% (hasil)</text>
+  <text x="275" y="819" class="ts">tiap foto: proses anti-manipulasi yang sama</text>
+  <path d="M790 742 L790 798 L420 798" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S4 -->
+  <rect x="640" y="855" width="300" height="52" rx="10" class="sys"/>
+  <text x="790" y="874" class="t">Validasi tiap foto: zona, urutan progres,</text>
+  <text x="790" y="889" class="ts">keterlacakan (id tugas, lokasi, waktu)</text>
+  <text x="790" y="902" class="ts">→ bukti otomatis tertaut untuk penilaian C4</text>
+  <path d="M420 798 L640 870" class="flow" marker-end="url(#arr)"/>
+
+  <!-- P5 -->
+  <rect x="170" y="940" width="210" height="42" rx="20" class="act"/>
+  <text x="275" y="957" class="t">Selesai kerja, tekan</text>
+  <text x="275" y="972" class="t">"Absen Pulang" di zona</text>
+  <path d="M790 907 L790 961 L380 961" class="flow" marker-end="url(#arr)"/>
+
+  <!-- S5 -->
+  <rect x="640" y="1015" width="300" height="52" rx="10" class="sys"/>
+  <text x="790" y="1034" class="t">Proses sama seperti absen masuk — berlaku juga</text>
+  <text x="790" y="1049" class="ts">untuk absen istirahat (mulai &amp; selesai)</text>
+  <text x="790" y="1062" class="ts">→ rekap kehadiran harian otomatis terbentuk (bukti kriteria C1)</text>
+  <path d="M380 961 L640 1041" class="flow" marker-end="url(#arr)"/>
+
+  <!-- end -->
+  <circle cx="790" cy="1105" r="12" fill="none" stroke="#0f172a" stroke-width="3"/>
+  <circle cx="790" cy="1105" r="7" fill="#0f172a"/>
+  <line x1="790" y1="1067" x2="790" y2="1093" class="flow" marker-end="url(#arr)"/>
+</svg>
