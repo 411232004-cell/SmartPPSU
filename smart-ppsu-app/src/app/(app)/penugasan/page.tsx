@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import {
-  listPetugas, listPenugasan, tambahPenugasan, simpanZona,
-  Petugas, Penugasan,
+  listPetugas, listZona, listPenugasan, tambahPenugasan, simpanZona,
+  Petugas, Zona, Penugasan,
 } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
 
@@ -16,13 +16,14 @@ const inputStyle: React.CSSProperties = {
 export default function PenugasanPage() {
   const { profil } = useAuth();
   const [petugas, setPetugas] = useState<Petugas[]>([]);
+  const [zonas, setZonas] = useState<Zona[]>([]);
   const [tugas, setTugas] = useState<Penugasan[]>([]);
   const [pesan, setPesan] = useState("");
 
   const [tugasForm, setTugasForm] = useState({
-    nama_petugas: "", jenis_pekerjaan: "", deskripsi: "",
+    petugas_id: "", jenis_pekerjaan: "", deskripsi: "",
     tanggal_tugas: new Date().toISOString().slice(0, 10),
-    target_selesai: "", prioritas: "normal" as const, nama_zona: "",
+    target_selesai: "", prioritas: "normal" as const, zona_id: "",
   });
   const [zonaForm, setZonaForm] = useState({
     nama: "", alamat: "", lat: "", lng: "", radiusMeter: "300",
@@ -30,25 +31,20 @@ export default function PenugasanPage() {
   });
 
   const muat = async () => {
-    const [p, t] = await Promise.all([listPetugas(), listPenugasan()]);
-    setPetugas(p); setTugas(t.slice(0, 30));
+    const [p, z, t] = await Promise.all([listPetugas(), listZona(), listPenugasan()]);
+    setPetugas(p); setZonas(z); setTugas(t.slice(0, 30));
   };
   useEffect(() => { muat(); }, []);
 
   const buatTugas = async () => {
-    if (!tugasForm.nama_petugas || !tugasForm.jenis_pekerjaan) {
-      setPesan("Isi nama petugas dan jenis pekerjaan."); return;
+    if (!tugasForm.petugas_id || !tugasForm.jenis_pekerjaan) {
+      setPesan("Pilih petugas dan isi jenis pekerjaan."); return;
     }
-    const p = petugas.find((x) => x.nama.toLowerCase() === tugasForm.nama_petugas.toLowerCase());
+    const p = petugas.find((x) => x.id === tugasForm.petugas_id);
     await tambahPenugasan({
-      petugas_id: p?.id || "",
-      nama_petugas: tugasForm.nama_petugas,
-      jenis_pekerjaan: tugasForm.jenis_pekerjaan,
-      deskripsi: tugasForm.deskripsi,
-      tanggal_tugas: tugasForm.tanggal_tugas,
-      target_selesai: tugasForm.target_selesai,
-      prioritas: tugasForm.prioritas,
-      zona_id: tugasForm.nama_zona || p?.zona_id || "",
+      ...tugasForm,
+      zona_id: tugasForm.zona_id || p?.zona_id || "",
+      nama_petugas: p?.nama,
       dibuat_oleh: profil?.uid,
     });
     setPesan("✓ Penugasan dibuat.");
@@ -81,7 +77,13 @@ export default function PenugasanPage() {
       <div className="card3d" style={{ marginTop: 16, padding: 20 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>＋ Buat penugasan</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          <input style={inputStyle} placeholder="Nama petugas" value={tugasForm.nama_petugas} onChange={(e) => setTugasForm({ ...tugasForm, nama_petugas: e.target.value })} />
+          <select style={inputStyle} value={tugasForm.petugas_id} onChange={(e) => {
+            const p = petugas.find((x) => x.id === e.target.value);
+            setTugasForm({ ...tugasForm, petugas_id: e.target.value, zona_id: p?.zona_id || "" });
+          }}>
+            <option value="">— Petugas —</option>
+            {petugas.filter(p => p.aktif).map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
+          </select>
           <input style={inputStyle} placeholder="Jenis pekerjaan (mis. Penyapuan jalan)" value={tugasForm.jenis_pekerjaan} onChange={(e) => setTugasForm({ ...tugasForm, jenis_pekerjaan: e.target.value })} />
           <input style={inputStyle} placeholder="Deskripsi / lokasi detail" value={tugasForm.deskripsi} onChange={(e) => setTugasForm({ ...tugasForm, deskripsi: e.target.value })} />
           <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Tanggal tugas
@@ -95,7 +97,10 @@ export default function PenugasanPage() {
             <option value="normal">Prioritas normal</option>
             <option value="tinggi">Prioritas tinggi</option>
           </select>
-          <input style={inputStyle} placeholder="Nama zona (opsional)" value={tugasForm.nama_zona} onChange={(e) => setTugasForm({ ...tugasForm, nama_zona: e.target.value })} />
+          <select style={inputStyle} value={tugasForm.zona_id} onChange={(e) => setTugasForm({ ...tugasForm, zona_id: e.target.value })}>
+            <option value="">— Zona (default zona petugas) —</option>
+            {zonas.map((z) => <option key={z.id} value={z.id}>{z.nama}</option>)}
+          </select>
         </div>
         <button className="btn3d" style={{ marginTop: 14 }} onClick={buatTugas}>Buat Penugasan</button>
       </div>
