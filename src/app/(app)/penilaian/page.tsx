@@ -154,6 +154,7 @@ export default function PenilaianPage() {
         nilai_akhir: nilaiDenganBonus,
         nilai_smart: hasil.nilaiAkhir,
         bonus_tugas_khusus: bonus,
+        sumber: "manual",
         dihitung_pada: serverTimestamp(),
       });
 
