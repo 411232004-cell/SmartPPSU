@@ -30,16 +30,12 @@ async function hitungStat(
   dbx: Firestore, uid: string, regu: string | undefined,
   awal: string, akhir: string
 ): Promise<Stat> {
+  // filter tanggal di kode — kombinasi where + range beda field butuh composite index
+  const dlm = (t: string) => t >= awal && t <= akhir;
   const [absSnap, jadSnap, tugasSnap, notifSnap] = await Promise.all([
-    dbx.collection("absensi")
-      .where("petugas_id", "==", uid)
-      .where("tanggal", ">=", awal).where("tanggal", "<=", akhir).get(),
-    dbx.collection("jadwal_shift")
-      .where("petugas_id", "==", uid)
-      .where("tanggal", ">=", awal).where("tanggal", "<=", akhir).get(),
-    dbx.collection("penugasan")
-      .where("petugas_id", "==", uid)
-      .where("tanggal_tugas", ">=", awal).where("tanggal_tugas", "<=", akhir).get(),
+    dbx.collection("absensi").where("petugas_id", "==", uid).get(),
+    dbx.collection("jadwal_shift").where("petugas_id", "==", uid).get(),
+    dbx.collection("penugasan").where("petugas_id", "==", uid).get(),
     dbx.collection("notifikasi").where("jenis", "==", "tugas_khusus").get(),
   ]);
 
@@ -47,6 +43,7 @@ async function hitungStat(
   let tepatCount = 0, masukCount = 0;
   absSnap.docs.forEach((d) => {
     const r = d.data();
+    if (!dlm(r.tanggal || "")) return;
     (perTanggal[r.tanggal] = perTanggal[r.tanggal] || new Set()).add(r.jenis);
     if (r.jenis === "masuk") {
       masukCount++;
@@ -58,12 +55,15 @@ async function hitungStat(
     perTanggal[t].has("pulang") && perTanggal[t].has("istirahat_mulai") && perTanggal[t].has("istirahat_selesai")
   );
 
-  const hariKerja = jadSnap.docs.filter((d) => d.data().shift !== "libur").length;
+  const hariKerja = jadSnap.docs.filter((d) => {
+    const j = d.data();
+    return j.shift !== "libur" && dlm(j.tanggal || "");
+  }).length;
   const pctHadir = hariKerja ? hariMasuk.length / hariKerja : hariMasuk.length ? 1 : 0;
   const pctTepat = masukCount ? tepatCount / masukCount : 0;
   const pctLengkap = hariMasuk.length ? hariLengkap.length / hariMasuk.length : 0;
 
-  const tugasAll = tugasSnap.docs.map((d) => d.data());
+  const tugasAll = tugasSnap.docs.map((d) => d.data()).filter((t) => dlm(t.tanggal_tugas || ""));
   const tugasSelesai = tugasAll.filter((t) => t.status === "selesai").length;
 
   let tkSelesai = 0, tkGagal = 0, poinPlus = 0, poinMinus = 0;
