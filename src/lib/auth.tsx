@@ -19,6 +19,9 @@ export interface Profil {
   zona_id?: string;
   regu?: string;
   aktif?: boolean;
+  shift?: "pagi" | "sore";
+  bebas_gps?: boolean;
+  poin_bonus?: number;
 }
 
 interface AuthCtx {
@@ -51,6 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           zona_id: d.zona_id,
           regu: d.regu,
           aktif: d.aktif !== false,
+          shift: d.shift,
+          bebas_gps: d.bebas_gps === true,
+          poin_bonus: d.poin_bonus ?? 0,
         });
       } else {
         setProfil(null);

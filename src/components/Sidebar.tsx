@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/lib/auth";
 
 type Item = { href: string; label: string; icon: React.ReactNode };
@@ -123,7 +122,7 @@ export default function Sidebar({
           </span>
           <span>Smart PPSU</span>
         </div>
-        <ThemeToggle />
+
       </div>
 
       <div className="section-label">MENU UTAMA</div>

@@ -60,6 +60,9 @@ export interface Petugas {
   regu?: string;
   niap?: string;
   aktif: boolean;
+  shift?: "pagi" | "sore";
+  bebas_gps?: boolean;
+  poin_bonus?: number;
 }
 
 export async function listPetugas(hanyaPetugas = true): Promise<Petugas[]> {
@@ -76,6 +79,9 @@ export async function listPetugas(hanyaPetugas = true): Promise<Petugas[]> {
     regu: d.data().regu,
     niap: d.data().niap,
     aktif: d.data().aktif !== false,
+    shift: d.data().shift,
+    bebas_gps: d.data().bebas_gps === true,
+    poin_bonus: d.data().poin_bonus ?? 0,
   }));
 }
 
@@ -252,4 +258,191 @@ export function subscribeProgresTerbaru(cb: (rows: Record<string, unknown>[]) =>
     (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
     (err) => console.warn("Listener progres gagal:", err.message)
   );
+}
+
+// ---------- ZONA DEFAULT (geofence per regu) ----------
+// Titik pusat perkiraan Kelurahan Duri Selatan, Tambora — admin bisa koreksi via UI zona
+const PUSAT = { lat: -6.1538, lng: 106.8033 };
+const ZONA_DEFAULT: { id: string; nama: string; alamat: string; radius: number }[] = [
+  { id: "rw_01", nama: "RW 01", alamat: "Wilayah RW 01 Kel. Duri Selatan", radius: 250 },
+  { id: "rw_02", nama: "RW 02", alamat: "Wilayah RW 02 Kel. Duri Selatan", radius: 250 },
+  { id: "rw_03", nama: "RW 03", alamat: "Wilayah RW 03 Kel. Duri Selatan", radius: 250 },
+  { id: "rw_04", nama: "RW 04", alamat: "Wilayah RW 04 Kel. Duri Selatan", radius: 250 },
+  { id: "rw_05", nama: "RW 05", alamat: "Wilayah RW 05 Kel. Duri Selatan", radius: 250 },
+  { id: "rw_06", nama: "RW 06", alamat: "Wilayah RW 06 Kel. Duri Selatan", radius: 250 },
+  { id: "kantor", nama: "Kantor Kelurahan Duri Selatan", alamat: "Kantor Kel. Duri Selatan", radius: 150 },
+  { id: "kelurahan", nama: "Seluruh Kel. Duri Selatan", alamat: "Seluruh wilayah Kel. Duri Selatan", radius: 1500 },
+];
+
+/** Buat dokumen zona default yang belum ada (tidak menimpa yang sudah diatur admin). */
+export async function pastikanZonaDefault() {
+  await Promise.all(
+    ZONA_DEFAULT.map(async (z) => {
+      const ref = doc(db, "zona", z.id);
+      if ((await getDoc(ref)).exists()) return;
+      await setDoc(ref, {
+        nama_zona: z.nama,
+        alamat: z.alamat,
+        titik_pusat: PUSAT,
+        radius_meter: z.radius,
+        jadwal_kerja: { jam_masuk: "07:00", jam_pulang: "15:00" },
+      });
+    })
+  );
+}
+
+// ---------- JADWAL SHIFT ----------
+export interface JadwalShift {
+  id: string;
+  tanggal: string; // yyyy-mm-dd
+  petugas_id: string;
+  nama_petugas?: string;
+  shift: "pagi" | "sore" | "libur";
+}
+
+export async function listJadwalBulan(prefix: string): Promise<JadwalShift[]> {
+  const snap = await getDocs(
+    query(
+      collection(db, "jadwal_shift"),
+      where("tanggal", ">=", `${prefix}-01`),
+      where("tanggal", "<=", `${prefix}-31`)
+    )
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<JadwalShift, "id">) }));
+}
+
+export async function listJadwalTanggal(tanggal: string): Promise<JadwalShift[]> {
+  const snap = await getDocs(
+    query(collection(db, "jadwal_shift"), where("tanggal", "==", tanggal))
+  );
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<JadwalShift, "id">) }));
+}
+
+export async function setJadwalShift(
+  tanggal: string,
+  p: { id: string; nama: string },
+  shift: "pagi" | "sore" | "libur"
+) {
+  await setDoc(
+    doc(db, "jadwal_shift", `${tanggal}_${p.id}`),
+    { tanggal, petugas_id: p.id, nama_petugas: p.nama, shift },
+    { merge: true }
+  );
+}
+
+/** Shift petugas di tanggal tertentu: jadwal harian → default profil → "pagi". */
+export async function getShiftUntuk(petugasId: string, tanggal: string): Promise<string | undefined> {
+  const snap = await getDoc(doc(db, "jadwal_shift", `${tanggal}_${petugasId}`));
+  return snap.exists() ? (snap.data().shift as string) : undefined;
+}
+
+// ---------- NOTIFIKASI: TUGAS KHUSUS & SURAT EDARAN ----------
+export interface Notif {
+  id: string;
+  jenis: "tugas_khusus" | "edaran";
+  target: "personel" | "regu" | "semua";
+  target_petugas_id?: string;
+  target_regu?: string;
+  judul: string;
+  deskripsi: string;
+  poin: number;
+  status: "baru" | "diterima" | "selesai";
+  diterima_oleh?: string;
+  diselesaikan_oleh?: string;
+  dibaca_oleh: string[];
+  dibuat_oleh: string;
+  nama_pembuat: string;
+  dibuat_pada?: Timestamp;
+}
+
+/** Apakah notif ini ditujukan ke profil ini. */
+export function notifUntuk(n: Notif, profil: { uid: string; regu?: string; peran: string }): boolean {
+  if (n.target === "semua") return profil.peran === "petugas_ppsu";
+  if (n.target === "personel") return n.target_petugas_id === profil.uid;
+  return !!profil.regu && n.target_regu === profil.regu;
+}
+
+export async function buatNotifikasi(input: {
+  jenis: "tugas_khusus" | "edaran";
+  target: "personel" | "regu" | "semua";
+  target_petugas_id?: string;
+  target_regu?: string;
+  judul: string;
+  deskripsi: string;
+  poin?: number;
+  dibuat_oleh: string;
+  nama_pembuat: string;
+}) {
+  await addDoc(collection(db, "notifikasi"), {
+    jenis: input.jenis,
+    target: input.target,
+    target_petugas_id: input.target_petugas_id || "",
+    target_regu: input.target_regu || "",
+    judul: input.judul,
+    deskripsi: input.deskripsi,
+    poin: input.poin ?? 0,
+    status: "baru",
+    dibaca_oleh: [],
+    dibuat_oleh: input.dibuat_oleh,
+    nama_pembuat: input.nama_pembuat,
+    dibuat_pada: serverTimestamp(),
+  });
+  // Tugas khusus → target bebas kunci GPS selama tugas berjalan
+  if (input.jenis === "tugas_khusus") {
+    if (input.target === "personel" && input.target_petugas_id) {
+      await updateDoc(doc(db, "users", input.target_petugas_id), { bebas_gps: true });
+    } else if (input.target === "regu" && input.target_regu) {
+      await setBebasGpsRegu(input.target_regu, true);
+    }
+  }
+}
+
+async function setBebasGpsRegu(reguId: string, nilai: boolean) {
+  const snap = await getDocs(query(collection(db, "users"), where("regu", "==", reguId)));
+  await Promise.all(snap.docs.map((d) => updateDoc(d.ref, { bebas_gps: nilai })));
+}
+
+export function subscribeNotifikasi(cb: (rows: Notif[]) => void): Unsubscribe {
+  return onSnapshot(
+    query(collection(db, "notifikasi"), orderBy("dibuat_pada", "desc"), limit(100)),
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Notif, "id">) }))),
+    (err) => console.warn("Listener notifikasi gagal:", err.message)
+  );
+}
+
+export async function terimaNotif(id: string, nama: string) {
+  await updateDoc(doc(db, "notifikasi", id), {
+    status: "diterima",
+    diterima_oleh: nama,
+  });
+}
+
+/** Selesaikan tugas khusus: beri poin ke target + kembalikan kunci GPS. */
+export async function selesaiNotif(n: Notif, nama: string) {
+  await updateDoc(doc(db, "notifikasi", n.id), {
+    status: "selesai",
+    diselesaikan_oleh: nama,
+    diselesaikan_pada: serverTimestamp(),
+  });
+  if (n.jenis !== "tugas_khusus") return;
+  const poin = n.poin || 0;
+  const beriPoin = async (uid: string) => {
+    const ref = doc(db, "users", uid);
+    const cur = (await getDoc(ref)).data()?.poin_bonus ?? 0;
+    await updateDoc(ref, { bebas_gps: false, poin_bonus: cur + poin });
+  };
+  if (n.target === "personel" && n.target_petugas_id) {
+    await beriPoin(n.target_petugas_id);
+  } else if (n.target === "regu" && n.target_regu) {
+    const snap = await getDocs(query(collection(db, "users"), where("regu", "==", n.target_regu)));
+    await Promise.all(snap.docs.map((d) => beriPoin(d.id)));
+  } else {
+    await setBebasGpsRegu(n.target_regu || "", false);
+  }
+}
+
+export async function tandaiDibaca(id: string, uid: string) {
+  const ref = doc(db, "notifikasi", id);
+  const cur = (await getDoc(ref)).data()?.dibaca_oleh ?? [];
+  if (!cur.includes(uid)) await updateDoc(ref, { dibaca_oleh: [...cur, uid] });
 }

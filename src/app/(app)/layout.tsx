@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 import MobileTopbar from "@/components/MobileTopbar";
+import AppHeader from "@/components/AppHeader";
 import OfflineGuard from "@/components/OfflineGuard";
 import LoadingScreen from "@/components/LoadingScreen";
 
@@ -30,6 +31,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       <Sidebar peran={profil.peran} nama={profil.nama} />
       <main className="app-content">
         <MobileTopbar />
+        <AppHeader />
         {children}
       </main>
       <MobileNav peran={profil.peran} />

@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
-import { listPetugas, updatePetugas, Petugas } from "@/lib/data";
-import { REGU } from "@/lib/regu";
+import {
+  listPetugas, updatePetugas, Petugas,
+  buatNotifikasi, subscribeNotifikasi, Notif, pastikanZonaDefault,
+} from "@/lib/data";
+import { REGU, namaRegu } from "@/lib/regu";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 10px", borderRadius: 10,
@@ -17,7 +20,10 @@ export default function ZonaPage() {
   const [petugas, setPetugas] = useState<Petugas[]>([]);
   const [pesan, setPesan] = useState("");
 
-  const muat = async () => setPetugas(await listPetugas());
+  const muat = async () => {
+    if (isAdmin) pastikanZonaDefault().catch(() => {});
+    setPetugas(await listPetugas());
+  };
   useEffect(() => { muat(); }, []);
 
   const assign = async (petugasId: string, regu: string) => {
@@ -29,6 +35,49 @@ export default function ZonaPage() {
 
   const aktif = petugas.filter((p) => p.aktif);
   const tanpaRegu = aktif.filter((p) => !p.regu || !REGU.some((r) => r.id === p.regu));
+
+  // --- tugas khusus & edaran (admin) ---
+  const [mode, setMode] = useState<"semua" | "regu" | "personel">("semua");
+  const [reguTgt, setReguTgt] = useState(REGU[0].id);
+  const [personelTgt, setPersonelTgt] = useState("");
+  const [judul, setJudul] = useState("");
+  const [deskripsi, setDeskripsi] = useState("");
+  const [poin, setPoin] = useState(10);
+  const [sibukKirim, setSibukKirim] = useState(false);
+  const [tugasAktif, setTugasAktif] = useState<Notif[]>([]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    return subscribeNotifikasi((rows) =>
+      setTugasAktif(rows.filter((n) => n.jenis === "tugas_khusus" && n.status !== "selesai"))
+    );
+  }, [isAdmin]);
+
+  const kirim = async () => {
+    if (!judul.trim() || !profil) return;
+    if (mode === "personel" && !personelTgt) return;
+    setSibukKirim(true);
+    try {
+      const edaran = mode === "semua";
+      await buatNotifikasi({
+        jenis: edaran ? "edaran" : "tugas_khusus",
+        target: mode,
+        target_regu: mode === "regu" ? reguTgt : undefined,
+        target_petugas_id: mode === "personel" ? personelTgt : undefined,
+        judul: judul.trim(),
+        deskripsi: deskripsi.trim(),
+        poin: edaran ? 0 : poin,
+        dibuat_oleh: profil.uid,
+        nama_pembuat: profil.nama,
+      });
+      setPesan(edaran ? "✓ Surat edaran terkirim ke seluruh PPSU." : "✓ Tugas khusus terkirim & target bebas GPS.");
+      setJudul(""); setDeskripsi("");
+    } catch (e) {
+      setPesan(`Gagal mengirim: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setSibukKirim(false);
+    }
+  };
 
   return (
     <div className="zona-page">
@@ -99,6 +148,101 @@ export default function ZonaPage() {
             );
           })}
         </div>
+
+        {isAdmin && (
+          <div className="zona-card" style={{ marginTop: 20 }}>
+            <div className="zona-card-head">
+              <div>
+                <div className="zona-name">⭐ Tugas Khusus &amp; 📢 Surat Edaran</div>
+                <div className="zona-wilayah">Kirim penugasan atau pengumuman — notif masuk ke petugas</div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+              {([
+                ["semua", "📢 Semua PPSU (Edaran)"],
+                ["regu", "👥 Per Regu/Zona"],
+                ["personel", "👤 Per Personel"],
+              ] as const).map(([m, label]) => (
+                <button
+                  key={m}
+                  onClick={() => setMode(m)}
+                  style={{
+                    padding: "7px 14px", borderRadius: 10, border: "none", cursor: "pointer",
+                    fontSize: 12, fontWeight: 800, fontFamily: "inherit",
+                    background: mode === m ? "var(--orange)" : "rgba(255,255,255,0.12)",
+                    color: mode === m ? "#fff" : "rgba(255,255,255,0.8)",
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {mode === "regu" && (
+              <select style={{ ...inputStyle, marginBottom: 10 }} value={reguTgt} onChange={(e) => setReguTgt(e.target.value)}>
+                {REGU.map((r) => (
+                  <option key={r.id} value={r.id}>{r.nama} — {r.wilayah}</option>
+                ))}
+              </select>
+            )}
+            {mode === "personel" && (
+              <select style={{ ...inputStyle, marginBottom: 10 }} value={personelTgt} onChange={(e) => setPersonelTgt(e.target.value)}>
+                <option value="">— Pilih personel —</option>
+                {aktif.map((p) => (
+                  <option key={p.id} value={p.id}>{p.nama} ({namaRegu(p.regu)})</option>
+                ))}
+              </select>
+            )}
+
+            <input
+              style={{ ...inputStyle, marginBottom: 10 }}
+              placeholder={mode === "semua" ? "Judul edaran…" : "Judul tugas khusus…"}
+              value={judul}
+              onChange={(e) => setJudul(e.target.value)}
+            />
+            <textarea
+              style={{ ...inputStyle, minHeight: 70, resize: "vertical", marginBottom: 10 }}
+              placeholder="Deskripsi / isi pengumuman…"
+              value={deskripsi}
+              onChange={(e) => setDeskripsi(e.target.value)}
+            />
+            {mode !== "semua" && (
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+                Poin bonus saat selesai:
+                <input
+                  type="number" min={0} max={50} value={poin}
+                  onChange={(e) => setPoin(Number(e.target.value) || 0)}
+                  style={{ ...inputStyle, width: 80 }}
+                />
+              </label>
+            )}
+            <button
+              className="btn3d"
+              style={{ width: "100%", padding: "11px 16px" }}
+              disabled={sibukKirim || !judul.trim() || (mode === "personel" && !personelTgt)}
+              onClick={kirim}
+            >
+              {sibukKirim ? "Mengirim…" : mode === "semua" ? "📢 Kirim Surat Edaran ke Semua PPSU" : "⭐ Kirim Tugas Khusus"}
+            </button>
+
+            {tugasAktif.length > 0 && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
+                  TUGAS KHUSUS BERJALAN
+                </div>
+                {tugasAktif.map((n) => (
+                  <div key={n.id} className="zona-members" style={{ marginBottom: 6 }}>
+                    <span className="zona-chip" style={{ fontSize: 11.5 }}>
+                      {n.judul} → {n.target === "personel" ? petugas.find((p) => p.id === n.target_petugas_id)?.nama || "personel" : namaRegu(n.target_regu)}
+                      {" "}• {n.status === "diterima" ? `diterima ${n.diterima_oleh || ""}` : "menunggu ACC"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {isAdmin && tanpaRegu.length > 0 && (
           <div className="zona-card" style={{ marginTop: 18 }}>

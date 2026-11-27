@@ -10,6 +10,7 @@ interface Nilai {
   periode: string;
   nilai_akhir: number;
   nilai_kriteria: Record<string, number | null>;
+  bonus_tugas_khusus?: number;
   dihitung_pada?: { toDate: () => Date };
 }
 
@@ -47,11 +48,18 @@ export default function NilaiSayaPage() {
         <div key={n.periode} className="card3d" style={{ marginTop: 14, padding: 20 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ fontWeight: 800, fontSize: 15 }}>Periode {n.periode}</div>
-            <div style={{
-              fontSize: 26, fontWeight: 800,
-              color: n.nilai_akhir >= 75 ? "var(--green-deep)" : n.nilai_akhir >= 50 ? "var(--orange-deep)" : "var(--danger)",
-            }}>
-              {n.nilai_akhir}
+            <div style={{ textAlign: "right" }}>
+              <div style={{
+                fontSize: 26, fontWeight: 800,
+                color: n.nilai_akhir >= 75 ? "var(--green-deep)" : n.nilai_akhir >= 50 ? "var(--orange-deep)" : "var(--danger)",
+              }}>
+                {n.nilai_akhir}
+              </div>
+              {(n.bonus_tugas_khusus ?? 0) > 0 && (
+                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--green-deep)" }}>
+                  termasuk +{n.bonus_tugas_khusus} bonus tugas khusus
+                </div>
+              )}
             </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 7, marginTop: 12 }}>

@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import NotifBell from "./NotifBell";
 
 export default function MobileTopbar() {
   const pathname = usePathname();
@@ -26,7 +27,8 @@ export default function MobileTopbar() {
         )}
       </div>
       <span className="mtb-title">Smart PPSU</span>
-      <div className="mtb-side" style={{ justifyContent: "flex-end" }}>
+      <div className="mtb-side" style={{ justifyContent: "flex-end", gap: 8 }}>
+        <NotifBell />
         <ThemeToggle />
       </div>
     </div>
