@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
@@ -9,11 +9,9 @@ import LoadingScreen from "@/components/LoadingScreen";
 declare global {
   interface Window {
     grecaptcha?: {
-      render: (el: HTMLElement, opts: Record<string, unknown>) => number;
-      getResponse: (id: number) => string;
-      reset: (id: number) => void;
+      ready: (cb: () => void) => void;
+      execute: (siteKey: string, opts: { action: string }) => Promise<string>;
     };
-    onPpsuCaptchaLoad?: () => void;
   }
 }
 
@@ -26,23 +24,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const captchaRef = useRef<HTMLDivElement>(null);
-  const widgetId = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!SITE_KEY) return;
-    const render = () => {
-      if (captchaRef.current && window.grecaptcha?.render && widgetId.current === null) {
-        widgetId.current = window.grecaptcha.render(captchaRef.current, {
-          sitekey: SITE_KEY,
-          theme: document.documentElement.classList.contains("night") ? "dark" : "light",
-        });
-      }
-    };
-    window.onPpsuCaptchaLoad = render;
-    if (window.grecaptcha) { render(); return; }
+    if (!SITE_KEY || document.getElementById("recaptcha-v3")) return;
     const s = document.createElement("script");
-    s.src = "https://www.google.com/recaptcha/api.js?onload=onPpsuCaptchaLoad&render=explicit";
+    s.id = "recaptcha-v3";
+    s.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`;
     s.async = true;
     s.defer = true;
     document.head.appendChild(s);
@@ -55,16 +42,22 @@ export default function LoginPage() {
       setError("Email dan password wajib diisi");
       return;
     }
+    setLoading(true);
 
     if (SITE_KEY) {
-      const token =
-        widgetId.current !== null ? window.grecaptcha?.getResponse(widgetId.current) : "";
-      if (!token) {
-        setError("Centang verifikasi reCAPTCHA dulu.");
-        return;
-      }
-      setLoading(true);
       try {
+        const token = await new Promise<string>((resolve, reject) => {
+          if (!window.grecaptcha) {
+            reject(new Error("reCAPTCHA belum termuat. Cek koneksi."));
+            return;
+          }
+          window.grecaptcha.ready(() => {
+            window.grecaptcha!
+              .execute(SITE_KEY, { action: "login" })
+              .then(resolve)
+              .catch(() => reject(new Error("reCAPTCHA gagal dieksekusi.")));
+          });
+        });
         const res = await fetch("/api/verify-recaptcha", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -72,18 +65,15 @@ export default function LoginPage() {
         });
         const v = await res.json();
         if (!v.success) {
-          setError("Verifikasi reCAPTCHA gagal. Coba lagi.");
-          if (widgetId.current !== null) window.grecaptcha?.reset(widgetId.current);
+          setError("Verifikasi keamanan gagal. Coba lagi.");
           setLoading(false);
           return;
         }
-      } catch {
-        setError("Tidak bisa memverifikasi reCAPTCHA. Cek koneksi.");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Verifikasi keamanan gagal.");
         setLoading(false);
         return;
       }
-    } else {
-      setLoading(true);
     }
 
     try {
@@ -96,7 +86,6 @@ export default function LoginPage() {
           ? "Email atau password salah."
           : msg
       );
-      if (widgetId.current !== null) window.grecaptcha?.reset(widgetId.current);
       setLoading(false);
     }
   };
@@ -156,12 +145,6 @@ export default function LoginPage() {
                 autoComplete="current-password"
               />
             </div>
-
-            {SITE_KEY && (
-              <div className="captcha-wrap">
-                <div ref={captchaRef} />
-              </div>
-            )}
 
             {error && <div className="bubble-error">{error}</div>}
 
