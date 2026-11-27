@@ -77,15 +77,12 @@ export default function AbsensiPage() {
   const muatSudah = async () => {
     if (!profil) return;
     const snap = await getDocs(
-      query(
-        collection(db, "absensi"),
-        where("petugas_id", "==", profil.uid),
-        where("tanggal", "==", hariIni)
-      )
+      query(collection(db, "absensi"), where("petugas_id", "==", profil.uid))
     );
     const m: Record<string, AbsenRow> = {};
     snap.docs.forEach((d) => {
       const x = d.data();
+      if (x.tanggal !== hariIni) return;
       m[x.jenis] = {
         jenis: x.jenis,
         waktu: x.waktu_server?.toDate?.(),

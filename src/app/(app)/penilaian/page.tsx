@@ -42,16 +42,17 @@ export default function PenilaianPage() {
       const awal = `${periode}-01-01`, akhir = `${periode}-12-31`;
 
       // --- absensi vs jadwal shift ---
+      // filter tanggal di kode — where + range beda field butuh composite index
+      const dlm = (t: string) => t >= awal && t <= akhir;
       const [absSnap, jadSnap] = await Promise.all([
-        getDocs(query(collection(db, "absensi"),
-          where("petugas_id", "==", dipilih.id),
-          where("tanggal", ">=", awal), where("tanggal", "<=", akhir))),
-        getDocs(query(collection(db, "jadwal_shift"),
-          where("petugas_id", "==", dipilih.id),
-          where("tanggal", ">=", awal), where("tanggal", "<=", akhir))),
+        getDocs(query(collection(db, "absensi"), where("petugas_id", "==", dipilih.id))),
+        getDocs(query(collection(db, "jadwal_shift"), where("petugas_id", "==", dipilih.id))),
       ]);
-      const rows = absSnap.docs.map((d) => d.data());
-      const hariKerja = jadSnap.docs.filter((d) => d.data().shift !== "libur").length;
+      const rows = absSnap.docs.map((d) => d.data()).filter((r) => dlm(r.tanggal || ""));
+      const hariKerja = jadSnap.docs.filter((d) => {
+        const j = d.data();
+        return j.shift !== "libur" && dlm(j.tanggal || "");
+      }).length;
 
       const perTanggal: Record<string, Set<string>> = {};
       rows.forEach((r) => {
@@ -69,9 +70,8 @@ export default function PenilaianPage() {
 
       // --- penugasan harian: wajib selesai di tanggalnya ---
       const tSnap = await getDocs(query(collection(db, "penugasan"),
-        where("petugas_id", "==", dipilih.id),
-        where("tanggal_tugas", ">=", awal), where("tanggal_tugas", "<=", akhir)));
-      const tugasAll = tSnap.docs.map((d) => d.data());
+        where("petugas_id", "==", dipilih.id)));
+      const tugasAll = tSnap.docs.map((d) => d.data()).filter((t) => dlm(t.tanggal_tugas || ""));
       const tugasSelesai = tugasAll.filter((t) => t.status === "selesai").length;
       const pctTugas = tugasAll.length ? tugasSelesai / tugasAll.length : 0;
 
