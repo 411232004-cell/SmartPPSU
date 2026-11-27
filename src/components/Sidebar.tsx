@@ -61,6 +61,14 @@ const I = {
       <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  zona: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <rect x="3.5" y="3.5" width="7.5" height="7.5" rx="2" />
+      <rect x="13" y="3.5" width="7.5" height="7.5" rx="2" />
+      <rect x="3.5" y="13" width="7.5" height="7.5" rx="2" />
+      <rect x="13" y="13" width="7.5" height="7.5" rx="2" />
+    </svg>
+  ),
   logout: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5" /><line x1="21" y1="12" x2="9" y2="12" />
@@ -87,12 +95,14 @@ export default function Sidebar({
           { href: "/jadwal", label: "Jadwal Harian PPSU", icon: I.jadwal },
           { href: "/penilaian", label: "Penilaian SMART", icon: I.nilai },
           { href: "/monev", label: "Laporan / Monev", icon: I.monev },
+          { href: "/zona", label: "Regu & Zona", icon: I.zona },
         ]
       : [
           { href: "/dashboard", label: "Beranda", icon: I.home },
           { href: "/absensi", label: "Absensi", icon: I.absen },
           { href: "/progres", label: "Foto Progres", icon: I.kamera },
           { href: "/tugas", label: "Penugasan Saya", icon: I.tugas },
+          { href: "/zona", label: "Regu & Zona", icon: I.zona },
           { href: "/kendala", label: "Lapor Kendala", icon: I.monitor },
         ];
 

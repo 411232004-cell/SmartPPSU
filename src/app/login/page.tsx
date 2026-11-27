@@ -1,10 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
 import LoadingScreen from "@/components/LoadingScreen";
+
+declare global {
+  interface Window {
+    grecaptcha?: {
+      render: (el: HTMLElement, opts: Record<string, unknown>) => number;
+      getResponse: (id: number) => string;
+      reset: (id: number) => void;
+    };
+    onPpsuCaptchaLoad?: () => void;
+  }
+}
+
+const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,6 +26,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
+  const widgetId = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!SITE_KEY) return;
+    const render = () => {
+      if (captchaRef.current && window.grecaptcha?.render && widgetId.current === null) {
+        widgetId.current = window.grecaptcha.render(captchaRef.current, {
+          sitekey: SITE_KEY,
+          theme: document.documentElement.classList.contains("night") ? "dark" : "light",
+        });
+      }
+    };
+    window.onPpsuCaptchaLoad = render;
+    if (window.grecaptcha) { render(); return; }
+    const s = document.createElement("script");
+    s.src = "https://www.google.com/recaptcha/api.js?onload=onPpsuCaptchaLoad&render=explicit";
+    s.async = true;
+    s.defer = true;
+    document.head.appendChild(s);
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +55,37 @@ export default function LoginPage() {
       setError("Email dan password wajib diisi");
       return;
     }
-    setLoading(true);
+
+    if (SITE_KEY) {
+      const token =
+        widgetId.current !== null ? window.grecaptcha?.getResponse(widgetId.current) : "";
+      if (!token) {
+        setError("Centang verifikasi reCAPTCHA dulu.");
+        return;
+      }
+      setLoading(true);
+      try {
+        const res = await fetch("/api/verify-recaptcha", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const v = await res.json();
+        if (!v.success) {
+          setError("Verifikasi reCAPTCHA gagal. Coba lagi.");
+          if (widgetId.current !== null) window.grecaptcha?.reset(widgetId.current);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        setError("Tidak bisa memverifikasi reCAPTCHA. Cek koneksi.");
+        setLoading(false);
+        return;
+      }
+    } else {
+      setLoading(true);
+    }
+
     try {
       await login(email.trim(), password);
       router.push("/dashboard");
@@ -32,94 +96,83 @@ export default function LoginPage() {
           ? "Email atau password salah."
           : msg
       );
+      if (widgetId.current !== null) window.grecaptcha?.reset(widgetId.current);
       setLoading(false);
     }
   };
 
   return (
-    <div className="login-bg">
-      <div style={{ position: "fixed", top: 18, right: 18 }}>
+    <div className="bubble-bg">
+      <span className="ball ball-1" />
+      <span className="ball ball-2" />
+      <span className="ball ball-3" />
+      <span className="ball ball-4" />
+      <span className="ball ball-5" />
+      <span className="ball ball-6" />
+      <span className="ball ball-7" />
+
+      <div style={{ position: "fixed", top: 18, right: 18, zIndex: 20 }}>
         <ThemeToggle />
       </div>
 
-      <div className="login-card">
+      <div className="glass-circle">
         {loading ? (
-          <div style={{ padding: "40px 0" }}>
+          <div style={{ padding: "40px 0", zIndex: 10 }}>
             <LoadingScreen label="Memproses Login" />
           </div>
         ) : (
-          <>
-            <div className="login-avatar-line">
-              <span />
-              <div className="login-avatar">👷</div>
-              <span />
+          <form className="bubble-form" onSubmit={submit}>
+            <h1>Smart PPSU</h1>
+            <div className="bubble-sub">Kelurahan Duri Selatan — Absensi &amp; Penilaian Kinerja</div>
+
+            <div className="bubble-input">
+              <span className="ic">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="3" y="5" width="18" height="14" rx="3" />
+                  <path d="m3.5 7 8.5 6 8.5-6" />
+                </svg>
+              </span>
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                autoComplete="username"
+              />
             </div>
 
-            <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: 1 }}>
-                SMART PPSU
-              </div>
-              <div style={{ fontSize: 12, opacity: 0.85, marginTop: 4 }}>
-                Kelurahan Duri Selatan — Absensi &amp; Penilaian Kinerja
-              </div>
+            <div className="bubble-input">
+              <span className="ic">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <rect x="4" y="10.5" width="16" height="10" rx="3" />
+                  <path d="M8 10.5V7a4 4 0 0 1 8 0v3.5" />
+                </svg>
+              </span>
+              <input
+                type="password"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+              />
             </div>
 
-            <form className="login-form" onSubmit={submit}>
-              <div className="login-input-box">
-                <span className="ic">👤</span>
-                <input
-                  type="email"
-                  placeholder="EMAIL"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="username"
-                />
+            {SITE_KEY && (
+              <div className="captcha-wrap">
+                <div ref={captchaRef} />
               </div>
-              <div className="login-input-box">
-                <span className="ic">🔒</span>
-                <input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
+            )}
 
-              {error && (
-                <div
-                  style={{
-                    background: "rgba(229,83,75,0.25)",
-                    border: "1px solid rgba(255,255,255,0.4)",
-                    borderRadius: 10,
-                    padding: "9px 12px",
-                    fontSize: 12.5,
-                  }}
-                >
-                  {error}
-                </div>
-              )}
+            {error && <div className="bubble-error">{error}</div>}
 
-              <button type="submit" className="btn3d" style={{ width: "100%", marginTop: 4 }}>
-                LOGIN
-              </button>
+            <button type="submit" className="bubble-btn">
+              LOGIN
+            </button>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  fontSize: 12.5,
-                  marginTop: 8,
-                  opacity: 0.9,
-                }}
-              >
-                <span>Absensi • Progres • SMART</span>
-                <a href="#" style={{ color: "rgba(255,255,255,0.8)" }}>
-                  Lupa password?
-                </a>
-              </div>
-            </form>
-          </>
+            <div className="bubble-foot">
+              <span>Absensi • Progres • SMART</span>
+            </div>
+          </form>
         )}
       </div>
     </div>

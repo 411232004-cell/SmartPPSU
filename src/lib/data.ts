@@ -57,6 +57,7 @@ export interface Petugas {
   email: string;
   peran: "petugas_ppsu" | "kasi_ekbang";
   zona_id?: string;
+  regu?: string;
   niap?: string;
   aktif: boolean;
 }
@@ -72,6 +73,7 @@ export async function listPetugas(hanyaPetugas = true): Promise<Petugas[]> {
     email: d.data().email || "-",
     peran: d.data().peran || "petugas_ppsu",
     zona_id: d.data().zona_id,
+    regu: d.data().regu,
     niap: d.data().niap,
     aktif: d.data().aktif !== false,
   }));

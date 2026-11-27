@@ -17,6 +17,7 @@ export interface Profil {
   nama: string;
   peran: Peran;
   zona_id?: string;
+  regu?: string;
   aktif?: boolean;
 }
 
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nama: d.nama || u.email?.split("@")[0] || "Pengguna",
           peran: (d.peran as Peran) || "petugas_ppsu",
           zona_id: d.zona_id,
+          regu: d.regu,
           aktif: d.aktif !== false,
         });
       } else {

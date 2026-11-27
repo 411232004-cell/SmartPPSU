@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
+import MobileTopbar from "@/components/MobileTopbar";
+import OfflineGuard from "@/components/OfflineGuard";
 import LoadingScreen from "@/components/LoadingScreen";
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -26,8 +28,12 @@ function Shell({ children }: { children: React.ReactNode }) {
   return (
     <div className="app-shell">
       <Sidebar peran={profil.peran} nama={profil.nama} />
-      <main className="app-content">{children}</main>
+      <main className="app-content">
+        <MobileTopbar />
+        {children}
+      </main>
       <MobileNav peran={profil.peran} />
+      <OfflineGuard />
     </div>
   );
 }
