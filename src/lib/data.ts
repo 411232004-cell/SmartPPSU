@@ -227,15 +227,29 @@ export async function simpanKendala(input: {
 // ---------- MONITORING REALTIME (Kasi Ekbang) ----------
 export function subscribeAbsensiHariIni(cb: (rows: Record<string, unknown>[]) => void): Unsubscribe {
   const today = new Date().toISOString().slice(0, 10);
+  // orderBy di sisi klien — where + orderBy beda field butuh composite index
   return onSnapshot(
-    query(collection(db, "absensi"), where("tanggal", "==", today), orderBy("waktu_server", "desc")),
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    query(collection(db, "absensi"), where("tanggal", "==", today)),
+    (snap) => {
+      const rows = snap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })) as Record<string, unknown>[];
+      rows.sort((a, b) => {
+        const ta = (a.waktu_server as { toMillis?: () => number })?.toMillis?.() ?? 0;
+        const tb = (b.waktu_server as { toMillis?: () => number })?.toMillis?.() ?? 0;
+        return tb - ta;
+      });
+      cb(rows);
+    },
+    (err) => console.warn("Listener absensi gagal:", err.message)
   );
 }
 
 export function subscribeProgresTerbaru(cb: (rows: Record<string, unknown>[]) => void): Unsubscribe {
   return onSnapshot(
     query(collection(db, "progres_foto"), orderBy("waktu_server", "desc"), limit(30)),
-    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+    (snap) => cb(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+    (err) => console.warn("Listener progres gagal:", err.message)
   );
 }
