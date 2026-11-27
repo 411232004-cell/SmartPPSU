@@ -209,7 +209,7 @@ export default function PenilaianPage() {
         )}
         {dipilih && (
           <button className="btn3d green" style={{ padding: "10px 16px", fontSize: 13, whiteSpace: "nowrap" }} disabled={memuatOto} onClick={isiOtomatis}>
-            {memuatOto ? "Membaca data…" : "✨ Isi otomatis dari data"}
+            {memuatOto ? "Membaca data…" : "Isi otomatis dari data"}
           </button>
         )}
       </div>

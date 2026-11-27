@@ -111,7 +111,7 @@ function DashboardPetugas({ nama }: { nama: string }) {
         ))}
       </div>
       <div className="card3d" style={{ marginTop: 20, padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Halo, {nama} 👋</div>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 6 }}>Halo, {nama}</div>
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px" }}>
           Lakukan absensi di dalam zona tugas dan dokumentasikan progres pekerjaan Anda (0% → 50% → 100%).
         </p>

@@ -142,8 +142,8 @@ export default function MonevPage() {
           {sudahDinilai}/{rows.length} petugas sudah dinilai
         </span>
         <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
-          <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportPDF}>📄 Ekspor PDF</button>
-          <button className="btn3d green" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportExcel}>📊 Ekspor Excel</button>
+          <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportPDF}>Ekspor PDF</button>
+          <button className="btn3d green" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportExcel}>Ekspor Excel</button>
         </div>
       </div>
 

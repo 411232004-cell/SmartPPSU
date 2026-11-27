@@ -16,12 +16,7 @@ import LoadingScreen from "@/components/LoadingScreen";
 type GPS = { lat: number; lng: number; akurasi: number };
 type AbsenRow = { jenis: JenisAbsen; waktu?: Date; dalam_zona?: boolean };
 
-const IKON: Record<JenisAbsen, string> = {
-  masuk: "🌅",
-  istirahat_mulai: "☕",
-  istirahat_selesai: "🍽️",
-  pulang: "🌙",
-};
+
 
 export default function AbsensiPage() {
   const { profil } = useAuth();
@@ -163,8 +158,7 @@ export default function AbsensiPage() {
       <div style={{ maxWidth: 640, margin: "0 auto" }}>
         <h1 className="page-title">Absensi</h1>
         <div className="card3d" style={{ marginTop: 16, padding: 24, textAlign: "center" }}>
-          <div style={{ fontSize: 40 }}>🌴</div>
-          <div style={{ fontWeight: 800, fontSize: 16, marginTop: 8 }}>Hari ini Anda libur</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Hari ini Anda libur</div>
           <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 4 }}>
             Tidak ada jadwal shift — tombol absen dinonaktifkan.
           </div>
@@ -185,7 +179,7 @@ export default function AbsensiPage() {
       <div className="card3d-inset" style={{ marginTop: 16, padding: 14, fontSize: 13 }}>
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <span>
-            📍 {zona === null
+            {zona === null
               ? zonaLabel
               : gps
                 ? `${gps.lat.toFixed(5)}, ${gps.lng.toFixed(5)} (±${Math.round(gps.akurasi)} m)`
@@ -215,7 +209,7 @@ export default function AbsensiPage() {
               disabled={disabled}
               onClick={() => absen(jenis)}
             >
-              <span className="absen-ikon">{row ? "✓" : IKON[jenis]}</span>
+              <span className="absen-ikon">{row ? "✓" : "●"}</span>
               <span style={{ flex: 1, textAlign: "left" }}>
                 <span style={{ display: "block", fontWeight: 800, fontSize: 15 }}>{LABEL_JENIS[jenis]}</span>
                 <span style={{ display: "block", fontSize: 12, fontWeight: 700, opacity: 0.85 }}>

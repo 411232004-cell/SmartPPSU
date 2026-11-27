@@ -285,8 +285,8 @@ export default function JadwalPage() {
           <span style={{ fontSize: 13, fontWeight: 700 }}>
             Ekstrak jadwal {BULAN[bulan]} {tahun} ({rowsBulan.length} penugasan):
           </span>
-          <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportPDF}>📄 PDF</button>
-          <button className="btn3d green" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportExcel}>📊 Excel</button>
+          <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportPDF}>Ekspor PDF</button>
+          <button className="btn3d green" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportExcel}>Ekspor Excel</button>
         </div>
       )}
     </div>

@@ -104,7 +104,7 @@ export default function NotifikasiPage() {
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
                   {n.status === "baru" && (
                     <button className="btn3d" style={{ padding: "8px 18px", fontSize: 13 }} disabled={sibuk === n.id} onClick={() => aksi(n, "acc")}>
-                      ✋ ACC Tugas
+                      ACC Tugas
                     </button>
                   )}
                   {n.status === "diterima" && (

@@ -7,6 +7,7 @@ import {
   buatNotifikasi, subscribeNotifikasi, Notif, pastikanZonaDefault,
 } from "@/lib/data";
 import { REGU, namaRegu } from "@/lib/regu";
+import { auth } from "@/lib/firebase";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "8px 10px", borderRadius: 10,
@@ -72,6 +73,21 @@ export default function ZonaPage() {
       });
       setPesan(edaran ? "✓ Surat edaran terkirim ke seluruh PPSU." : "✓ Tugas khusus terkirim & target bebas GPS.");
       setJudul(""); setDeskripsi("");
+      // kirim push notification ke device target (bunyi walau aplikasi tertutup)
+      const idToken = await auth.currentUser?.getIdToken();
+      if (idToken) {
+        fetch("/api/push", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${idToken}` },
+          body: JSON.stringify({
+            judul: edaran ? `Edaran: ${judul.trim()}` : `Tugas khusus: ${judul.trim()}`,
+            deskripsi: deskripsi.trim(),
+            target: mode,
+            target_petugas_id: mode === "personel" ? personelTgt : undefined,
+            target_regu: mode === "regu" ? reguTgt : undefined,
+          }),
+        }).catch(() => {});
+      }
     } catch (e) {
       setPesan(`Gagal mengirim: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -153,26 +169,21 @@ export default function ZonaPage() {
           <div className="zona-card" style={{ marginTop: 20 }}>
             <div className="zona-card-head">
               <div>
-                <div className="zona-name">⭐ Tugas Khusus &amp; 📢 Surat Edaran</div>
+                <div className="zona-name">Tugas Khusus &amp; Surat Edaran</div>
                 <div className="zona-wilayah">Kirim penugasan atau pengumuman — notif masuk ke petugas</div>
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
               {([
-                ["semua", "📢 Semua PPSU (Edaran)"],
-                ["regu", "👥 Per Regu/Zona"],
-                ["personel", "👤 Per Personel"],
+                ["semua", "Semua PPSU (Edaran)"],
+                ["regu", "Per Regu/Zona"],
+                ["personel", "Per Personel"],
               ] as const).map(([m, label]) => (
                 <button
                   key={m}
                   onClick={() => setMode(m)}
-                  style={{
-                    padding: "7px 14px", borderRadius: 10, border: "none", cursor: "pointer",
-                    fontSize: 12, fontWeight: 800, fontFamily: "inherit",
-                    background: mode === m ? "var(--orange)" : "rgba(255,255,255,0.12)",
-                    color: mode === m ? "#fff" : "rgba(255,255,255,0.8)",
-                  }}
+                  className={`zona-tgt-btn${mode === m ? " active" : ""}`}
                 >
                   {label}
                 </button>
@@ -208,7 +219,7 @@ export default function ZonaPage() {
               onChange={(e) => setDeskripsi(e.target.value)}
             />
             {mode !== "semua" && (
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, marginBottom: 10, color: "rgba(255,255,255,0.85)" }}>
+              <label className="zona-field-label" style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 700, marginBottom: 10 }}>
                 Poin bonus saat selesai:
                 <input
                   type="number" min={0} max={50} value={poin}
@@ -223,12 +234,12 @@ export default function ZonaPage() {
               disabled={sibukKirim || !judul.trim() || (mode === "personel" && !personelTgt)}
               onClick={kirim}
             >
-              {sibukKirim ? "Mengirim…" : mode === "semua" ? "📢 Kirim Surat Edaran ke Semua PPSU" : "⭐ Kirim Tugas Khusus"}
+              {sibukKirim ? "Mengirim…" : mode === "semua" ? "Kirim Surat Edaran ke Semua PPSU" : "Kirim Tugas Khusus"}
             </button>
 
             {tugasAktif.length > 0 && (
               <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "rgba(255,255,255,0.6)", marginBottom: 6 }}>
+                <div className="zona-list-label" style={{ fontSize: 11, fontWeight: 800, marginBottom: 6 }}>
                   TUGAS KHUSUS BERJALAN
                 </div>
                 {tugasAktif.map((n) => (

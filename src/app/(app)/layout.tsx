@@ -9,6 +9,7 @@ import MobileTopbar from "@/components/MobileTopbar";
 import AppHeader from "@/components/AppHeader";
 import OfflineGuard from "@/components/OfflineGuard";
 import LoadingScreen from "@/components/LoadingScreen";
+import { daftarkanPush } from "@/lib/push";
 
 function Shell({ children }: { children: React.ReactNode }) {
   const { profil, loading } = useAuth();
@@ -17,6 +18,11 @@ function Shell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!loading && !profil) router.replace("/login");
   }, [loading, profil, router]);
+
+  // daftarkan device ke FCM sekali per login (petugas → notif bunyi walau app tertutup)
+  useEffect(() => {
+    if (profil?.peran === "petugas_ppsu") daftarkanPush(profil.uid);
+  }, [profil]);
 
   if (loading || !profil) {
     return (

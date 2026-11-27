@@ -7,9 +7,9 @@ import { useAuth } from "@/lib/auth";
 import SendButton from "@/components/SendButton";
 
 const JENIS = [
-  { v: "kondisi_berbahaya", l: "⚠️ Kondisi berbahaya" },
-  { v: "alat_rusak", l: "🔧 Alat rusak" },
-  { v: "kendala", l: "📋 Kendala kerja lain" },
+  { v: "kondisi_berbahaya", l: "Kondisi berbahaya" },
+  { v: "alat_rusak", l: "Alat rusak" },
+  { v: "kendala", l: "Kendala kerja lain" },
 ];
 
 export default function KendalaPage() {
