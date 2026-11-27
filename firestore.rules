@@ -1,0 +1,119 @@
+rules_version = '2';
+
+// Firestore Security Rules — Smart PPSU
+// Prinsip: petugas hanya bisa tulis dokumen MILIKNYA / yang memang ditujukan padanya.
+// Admin (peran == "kasi_ekbang") boleh kelola semua.
+// Rekap otomatis memakai Admin SDK → bypass rules (tidak terpengaruh).
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return signedIn() && me().peran == 'kasi_ekbang';
+    }
+    function isSelf(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+    // field yang berubah terbatas pada daftar ini
+    function hanyaUbah(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    // ---------- USERS ----------
+    match /users/{uid} {
+      allow read: if signedIn();
+      // akun baru dibuat lewat secondary-auth → request.auth adalah user baru itu sendiri
+      allow create: if isSelf(uid) || isAdmin();
+      allow update: if isSelf(uid) || isAdmin()
+        // pengecualian sempit: penyelesaian tugas khusus regu menulis bebas_gps/poin_bonus
+        // di dokumen anggota lain — kenaikan poin dibatasi ≤ 50
+        || (hanyaUbah(['bebas_gps', 'poin_bonus'])
+            && request.resource.data.poin_bonus <= (resource.data.poin_bonus ?? 0) + 50);
+      allow delete: if isAdmin();
+    }
+
+    // ---------- ZONA ----------
+    match /zona/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------- JADWAL SHIFT ----------
+    match /jadwal_shift/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------- ABSENSI ----------
+    match /absensi/{id} {
+      allow read: if signedIn();
+      // hanya boleh absen atas nama diri sendiri
+      allow create: if isSelf(request.resource.data.petugas_id);
+      // absensi tidak boleh diubah/dihapus → anti manipulasi
+      allow update, delete: if false;
+    }
+
+    // ---------- PENUGASAN HARIAN ----------
+    match /penugasan/{id} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      // petugas hanya boleh mengubah status tugas miliknya
+      allow update: if isAdmin()
+        || (isSelf(resource.data.petugas_id)
+            && hanyaUbah(['status', 'alasan_penundaan', 'diupdate_pada']));
+    }
+
+    // ---------- PROGRES FOTO ----------
+    match /progres_foto/{id} {
+      allow read: if signedIn();
+      allow create: if isSelf(request.resource.data.petugas_id);
+      allow update, delete: if false;
+    }
+
+    // ---------- LAPORAN KENDALA ----------
+    match /laporan_kendala/{id} {
+      allow read: if signedIn();
+      allow create: if isSelf(request.resource.data.petugas_id);
+      allow update, delete: if false;
+    }
+
+    // ---------- NOTIFIKASI / TUGAS KHUSUS ----------
+    function targetNotif(n) {
+      return (n.target == 'semua' && me().peran == 'petugas_ppsu')
+        || n.target_petugas_id == request.auth.uid
+        || (n.target == 'regu' && n.target_regu == me().regu);
+    }
+    match /notifikasi/{id} {
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      // petugas target hanya boleh ACC/selesai/tandai-baca, bukan mengubah isi
+      allow update: if isAdmin()
+        || (targetNotif(resource.data)
+            && hanyaUbah(['status', 'diterima_oleh', 'diselesaikan_oleh',
+                          'diselesaikan_pada', 'dibaca_oleh']));
+    }
+
+    // ---------- PENILAIAN ----------
+    match /penilaian/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+    match /nilai_akhir/{id} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // ---------- REKAP OTOMATIS ----------
+    // hanya ditulis Admin SDK; petugas boleh membaca rekapnya
+    match /rekap_otomatis/{id} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+  }
+}
