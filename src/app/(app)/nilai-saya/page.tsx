@@ -55,9 +55,9 @@ export default function NilaiSayaPage() {
               }}>
                 {n.nilai_akhir}
               </div>
-              {(n.bonus_tugas_khusus ?? 0) > 0 && (
-                <div style={{ fontSize: 11, fontWeight: 800, color: "var(--green-deep)" }}>
-                  termasuk +{n.bonus_tugas_khusus} bonus tugas khusus
+              {(n.bonus_tugas_khusus ?? 0) !== 0 && (
+                <div style={{ fontSize: 11, fontWeight: 800, color: (n.bonus_tugas_khusus ?? 0) > 0 ? "var(--green-deep)" : "var(--danger)" }}>
+                  termasuk {(n.bonus_tugas_khusus ?? 0) > 0 ? `+${n.bonus_tugas_khusus}` : `−${Math.abs(n.bonus_tugas_khusus ?? 0)}`} tugas khusus
                 </div>
               )}
             </div>

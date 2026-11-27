@@ -23,45 +23,82 @@ export default function PenilaianPage() {
   const [sibuk, setSibuk] = useState(false);
   const [pesan, setPesan] = useState("");
   const [bonus, setBonus] = useState(0);
-  const [otomasi, setOtomasi] = useState<{ absen: number; tepat: number; tugas: number; poin: number } | null>(null);
+  const [otomasi, setOtomasi] = useState<{
+    absen: number; terjadwal: number; tepat: number; lengkap: number;
+    tugasSelesai: number; tugasTotal: number;
+    tkSelesai: number; tkPoin: number; tkGagal: number; tkMinus: number;
+  } | null>(null);
   const [memuatOto, setMemuatOto] = useState(false);
 
   useEffect(() => { listPetugas().then(setPetugas); }, []);
 
-  // Isi otomatis C1 dari rekap absensi + kumpulkan bonus tugas khusus periode ini
+  const skorPct = (p: number) => (p >= 0.95 ? 5 : p >= 0.8 ? 4 : p >= 0.6 ? 3 : p >= 0.4 ? 2 : 1);
+
+  // Isi otomatis dari data: absensi vs jadwal (C1), penugasan harian (C2), tugas khusus (bonus/penalti)
   const isiOtomatis = async () => {
     if (!dipilih) return;
     setMemuatOto(true);
     try {
-      const snap = await getDocs(query(
-        collection(db, "absensi"),
-        where("petugas_id", "==", dipilih.id),
-        where("tanggal", ">=", `${periode}-01-01`),
-        where("tanggal", "<=", `${periode}-12-31`)
-      ));
-      const rows = snap.docs.map((d) => d.data());
-      const masuk = rows.filter((r) => r.jenis === "masuk");
-      const hariAbsen = new Set(masuk.map((r) => r.tanggal)).size;
-      const pctTepat = masuk.length ? masuk.filter((r) => (r.telat_menit ?? 0) <= 5).length / masuk.length : 0;
+      const awal = `${periode}-01-01`, akhir = `${periode}-12-31`;
 
-      const ns = await getDocs(query(
-        collection(db, "notifikasi"),
-        where("jenis", "==", "tugas_khusus"),
-        where("status", "==", "selesai")
-      ));
-      let nTugas = 0, poin = 0;
+      // --- absensi vs jadwal shift ---
+      const [absSnap, jadSnap] = await Promise.all([
+        getDocs(query(collection(db, "absensi"),
+          where("petugas_id", "==", dipilih.id),
+          where("tanggal", ">=", awal), where("tanggal", "<=", akhir))),
+        getDocs(query(collection(db, "jadwal_shift"),
+          where("petugas_id", "==", dipilih.id),
+          where("tanggal", ">=", awal), where("tanggal", "<=", akhir))),
+      ]);
+      const rows = absSnap.docs.map((d) => d.data());
+      const hariKerja = jadSnap.docs.filter((d) => d.data().shift !== "libur").length;
+
+      const perTanggal: Record<string, Set<string>> = {};
+      rows.forEach((r) => {
+        (perTanggal[r.tanggal] = perTanggal[r.tanggal] || new Set()).add(r.jenis);
+      });
+      const hariMasuk = Object.keys(perTanggal).filter((t) => perTanggal[t].has("masuk"));
+      const hariLengkap = hariMasuk.filter((t) =>
+        perTanggal[t].has("pulang") && perTanggal[t].has("istirahat_mulai") && perTanggal[t].has("istirahat_selesai")
+      );
+
+      const masuk = rows.filter((r) => r.jenis === "masuk");
+      const pctHadir = hariKerja ? hariMasuk.length / hariKerja : hariMasuk.length ? 1 : 0;
+      const pctTepat = masuk.length ? masuk.filter((r) => (r.telat_menit ?? 0) <= 5).length / masuk.length : 0;
+      const pctLengkap = hariMasuk.length ? hariLengkap.length / hariMasuk.length : 0;
+
+      // --- penugasan harian: wajib selesai di tanggalnya ---
+      const tSnap = await getDocs(query(collection(db, "penugasan"),
+        where("petugas_id", "==", dipilih.id),
+        where("tanggal_tugas", ">=", awal), where("tanggal_tugas", "<=", akhir)));
+      const tugasAll = tSnap.docs.map((d) => d.data());
+      const tugasSelesai = tugasAll.filter((t) => t.status === "selesai").length;
+      const pctTugas = tugasAll.length ? tugasSelesai / tugasAll.length : 0;
+
+      // --- tugas khusus: selesai = +poin, belum selesai = −poin ---
+      const ns = await getDocs(query(collection(db, "notifikasi"), where("jenis", "==", "tugas_khusus")));
+      let tkSelesai = 0, tkPoin = 0, tkGagal = 0, tkMinus = 0;
       ns.docs.forEach((d) => {
         const n = d.data();
-        if (n.target_petugas_id === dipilih.id || (n.target === "regu" && n.target_regu === dipilih.regu)) {
-          nTugas++; poin += n.poin || 0;
-        }
+        const miliknya = n.target_petugas_id === dipilih.id || (n.target === "regu" && n.target_regu === dipilih.regu);
+        if (!miliknya) return;
+        if (n.status === "selesai") { tkSelesai++; tkPoin += n.poin || 0; }
+        else { tkGagal++; tkMinus += n.poin || 0; }
       });
 
-      const skHadir = hariAbsen >= 200 ? 5 : hariAbsen >= 150 ? 4 : hariAbsen >= 80 ? 3 : hariAbsen >= 30 ? 2 : 1;
-      const skTepat = pctTepat >= 0.9 ? 5 : pctTepat >= 0.75 ? 4 : pctTepat >= 0.5 ? 3 : pctTepat >= 0.25 ? 2 : 1;
-      setSkor((s) => ({ ...s, C1: [skHadir, skTepat, skTepat, s.C1[3], s.C1[4]] }));
-      setBonus(poin);
-      setOtomasi({ absen: hariAbsen, tepat: Math.round(pctTepat * 100), tugas: nTugas, poin });
+      setSkor((s) => ({
+        ...s,
+        C1: [skorPct(pctHadir), skorPct(pctTepat), skorPct(pctTepat), s.C1[3], skorPct(pctLengkap)],
+        C2: [skorPct(pctTugas), skorPct(pctTugas), skorPct(pctTugas), s.C2[3], s.C2[4]],
+      }));
+      const netBonus = tkPoin - tkMinus; // tugas khusus belum selesai mengurangi nilai
+      setBonus(netBonus);
+      setOtomasi({
+        absen: hariMasuk.length, terjadwal: hariKerja,
+        tepat: Math.round(pctTepat * 100), lengkap: Math.round(pctLengkap * 100),
+        tugasSelesai, tugasTotal: tugasAll.length,
+        tkSelesai, tkPoin, tkGagal, tkMinus,
+      });
     } catch (e) {
       setPesan(`Gagal membaca data: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -105,7 +142,7 @@ export default function PenilaianPage() {
         dibuat_pada: serverTimestamp(),
       });
 
-      const nilaiDenganBonus = Math.min(100, Math.round((hasil.nilaiAkhir + bonus) * 100) / 100);
+      const nilaiDenganBonus = Math.min(100, Math.max(0, Math.round((hasil.nilaiAkhir + bonus) * 100) / 100));
       await setDoc(doc(db, "nilai_akhir", `${dipilih.id}_${periode}`), {
         penilaian_id: nilai.id,
         petugas_id: dipilih.id,
@@ -120,7 +157,7 @@ export default function PenilaianPage() {
         dihitung_pada: serverTimestamp(),
       });
 
-      setPesan(`✓ Penilaian ${dipilih.nama} tersimpan — SMART ${hasil.nilaiAkhir}${bonus > 0 ? ` + bonus ${bonus}` : ""} = ${nilaiDenganBonus}`);
+      setPesan(`✓ Penilaian ${dipilih.nama} tersimpan — SMART ${hasil.nilaiAkhir}${bonus !== 0 ? ` ${bonus > 0 ? "+" : "−"}${Math.abs(bonus)} bonus tugas khusus` : ""} = ${nilaiDenganBonus}`);
     } catch (e) {
       setPesan(`Gagal: ${e instanceof Error ? e.message : e}`);
     } finally {
@@ -162,25 +199,28 @@ export default function PenilaianPage() {
             <div style={{ fontSize: 26, fontWeight: 800, color: hasil.nilaiAkhir >= 75 ? "var(--green-deep)" : hasil.nilaiAkhir >= 50 ? "var(--orange-deep)" : "var(--danger)" }}>
               {hasil.nilaiAkhir}
             </div>
-            {bonus > 0 && (
-              <div style={{ fontSize: 11, fontWeight: 800, color: "var(--green-deep)" }}>
-                +{bonus} bonus tugas khusus → {Math.min(100, hasil.nilaiAkhir + bonus)}
+            {bonus !== 0 && (
+              <div style={{ fontSize: 11, fontWeight: 800, color: bonus > 0 ? "var(--green-deep)" : "var(--danger)" }}>
+                {bonus > 0 ? "+" : "−"}{Math.abs(bonus)} tugas khusus → {Math.min(100, Math.max(0, hasil.nilaiAkhir + bonus))}
               </div>
             )}
           </div>
         )}
         {dipilih && (
           <button className="btn3d green" style={{ padding: "10px 16px", fontSize: 13, whiteSpace: "nowrap" }} disabled={memuatOto} onClick={isiOtomatis}>
-            {memuatOto ? "Membaca data…" : "✨ Isi C1 otomatis"}
+            {memuatOto ? "Membaca data…" : "✨ Isi otomatis dari data"}
           </button>
         )}
       </div>
 
       {otomasi && (
-        <div className="card3d-inset" style={{ marginTop: 12, padding: "10px 16px", fontSize: 12.5, color: "var(--text-muted)" }}>
-          Data {periode}: hadir <b>{otomasi.absen} hari</b> • tepat waktu <b>{otomasi.tepat}%</b> •
-          tugas khusus selesai <b>{otomasi.tugas}</b> (bonus <b style={{ color: "var(--green-deep)" }}>+{otomasi.poin}</b>)
-          — C1 indikator 1–3 terisi otomatis, silakan tinjau ulang.
+        <div className="card3d-inset" style={{ marginTop: 12, padding: "10px 16px", fontSize: 12.5, color: "var(--text-muted)", lineHeight: 1.7 }}>
+          Data {periode}: hadir <b>{otomasi.absen}{otomasi.terjadwal ? `/${otomasi.terjadwal}` : ""} hari</b> •
+          tepat waktu <b>{otomasi.tepat}%</b> • absen lengkap <b>{otomasi.lengkap}%</b> •
+          tugas harian selesai <b>{otomasi.tugasSelesai}/{otomasi.tugasTotal}</b> •
+          tugas khusus: <b>{otomasi.tkSelesai} selesai (+{otomasi.tkPoin})</b>
+          {otomasi.tkGagal > 0 && <> / <b style={{ color: "var(--danger)" }}>{otomasi.tkGagal} belum selesai (−{otomasi.tkMinus})</b></>}
+          {" "}— C1 &amp; C2 terisi otomatis, silakan tinjau ulang.
         </div>
       )}
 
