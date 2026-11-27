@@ -34,7 +34,7 @@ service cloud.firestore {
         // pengecualian sempit: penyelesaian tugas khusus regu menulis bebas_gps/poin_bonus
         // di dokumen anggota lain — kenaikan poin dibatasi ≤ 50
         || (hanyaUbah(['bebas_gps', 'poin_bonus'])
-            && request.resource.data.poin_bonus <= (resource.data.poin_bonus ?? 0) + 50);
+            && request.resource.data.poin_bonus <= resource.data.get('poin_bonus', 0) + 50);
       allow delete: if isAdmin();
     }
 
@@ -86,8 +86,8 @@ service cloud.firestore {
     // ---------- NOTIFIKASI / TUGAS KHUSUS ----------
     function targetNotif(n) {
       return (n.target == 'semua' && me().peran == 'petugas_ppsu')
-        || n.target_petugas_id == request.auth.uid
-        || (n.target == 'regu' && n.target_regu == me().regu);
+        || n.get('target_petugas_id', '') == request.auth.uid
+        || (n.target == 'regu' && n.target_regu == me().get('regu', ''));
     }
     match /notifikasi/{id} {
       allow read: if signedIn();
