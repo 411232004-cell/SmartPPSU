@@ -9,6 +9,7 @@ import {
 import { getGPS } from "@/lib/capture";
 import { useAuth } from "@/lib/auth";
 import ZonaMap from "@/components/ZonaMap";
+import { useConfirmDialog } from "@/components/ConfirmDialog";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 12px", borderRadius: 10,
@@ -17,6 +18,7 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function PenugasanPage() {
+  const { tanya, dialog } = useConfirmDialog();
   const { profil } = useAuth();
   const [petugas, setPetugas] = useState<Petugas[]>([]);
   const [zonas, setZonas] = useState<Zona[]>([]);
@@ -150,7 +152,7 @@ export default function PenugasanPage() {
   };
 
   const hapusZonaDipilih = async (z: Zona) => {
-    if (!confirm(`Hapus zona "${z.nama}"? Regu yang terikat zona ini kembali bebas GPS.`)) return;
+    if (!(await tanya("Hapus zona?", `"${z.nama}" akan dihapus — regu yang terikat zona ini kembali bebas GPS.`, { okLabel: "Hapus", bahaya: true }))) return;
     await hapusZona(z.id);
     if (seleksiZona === z.id) setSeleksiZona("");
     setPesan(`✓ Zona "${z.nama}" dihapus.`);
@@ -376,6 +378,8 @@ export default function PenugasanPage() {
         </div>
         <button className="btn3d green" style={{ marginTop: 12 }} onClick={buatZona}>Simpan Zona</button>
       </div>
+
+      {dialog}
     </div>
   );
 }

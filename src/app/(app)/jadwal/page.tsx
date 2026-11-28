@@ -9,6 +9,7 @@ import { JADWAL_SHIFT, LABEL_JENIS, URUTAN_JENIS, Shift } from "@/lib/absensi";
 import { namaRegu } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
+import { useConfirmDialog } from "@/components/ConfirmDialog";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -24,6 +25,7 @@ const WARNA_SHIFT: Record<string, string> = {
 
 export default function JadwalPage() {
   const { profil } = useAuth();
+  const { tanya, dialog } = useConfirmDialog();
   const now = new Date();
   const [tahun, setTahun] = useState(now.getFullYear());
   const [bulan, setBulan] = useState(now.getMonth()); // 0-based
@@ -117,10 +119,11 @@ export default function JadwalPage() {
       return;
     }
     const namaTgt = polaTarget ? target[0]?.nama : `${target.length} petugas`;
-    if (!confirm(
-      `Terapkan pola ini ke ${namaTgt} untuk ${polaBulan} bulan mulai ${BULAN[bulan]} ${tahun}?\n` +
-      `Jadwal yang sudah diatur manual akan ditimpa sesuai pola.`
-    )) return;
+    if (!(await tanya(
+      "Terapkan pola shift?",
+      `${namaTgt} — ${polaBulan} bulan mulai ${BULAN[bulan]} ${tahun}.\nJadwal yang sudah diatur manual akan ditimpa sesuai pola.`,
+      { okLabel: "Terapkan" }
+    ))) return;
     setPolaSibuk(true);
     try {
       const items: { tanggal: string; p: Petugas; shift: Shift }[] = [];
@@ -413,6 +416,8 @@ export default function JadwalPage() {
           <button className="btn3d green" style={{ padding: "9px 16px", fontSize: 13 }} onClick={exportExcel}>Ekspor Excel</button>
         </div>
       )}
+
+      {dialog}
     </div>
   );
 }
