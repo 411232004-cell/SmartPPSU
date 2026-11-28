@@ -28,13 +28,17 @@ export default function KendalaPage() {
       const p = await getGPS();
       lat = p.coords.latitude; lng = p.coords.longitude;
     } catch {}
-    await simpanKendala({
-      petugas_id: profil.uid,
-      nama_petugas: profil.nama,
-      jenis, deskripsi, lat, lng,
-    });
-    setDeskripsi("");
-    setPesan("✓ Laporan kendala terkirim ke Kasi Ekbang.");
+    try {
+      await simpanKendala({
+        petugas_id: profil.uid,
+        nama_petugas: profil.nama,
+        jenis, deskripsi, lat, lng,
+      });
+      setDeskripsi("");
+      setPesan("✓ Laporan kendala terkirim ke Kasi Ekbang.");
+    } catch (e) {
+      setPesan(`Gagal mengirim laporan: ${e instanceof Error ? e.message : e}`);
+    }
   };
 
   return (

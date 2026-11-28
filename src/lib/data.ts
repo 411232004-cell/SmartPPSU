@@ -134,12 +134,16 @@ export interface Penugasan {
 export async function listPenugasan(filter?: {
   petugas_id?: string; tanggal?: string; status?: string;
 }): Promise<Penugasan[]> {
-  const cons: QueryConstraint[] = [orderBy("tanggal_tugas", "desc"), limit(200)];
+  // tanpa orderBy server-side (hindari composite index) — sort di kode
+  const cons: QueryConstraint[] = [limit(500)];
   if (filter?.petugas_id) cons.unshift(where("petugas_id", "==", filter.petugas_id));
   if (filter?.tanggal) cons.unshift(where("tanggal_tugas", "==", filter.tanggal));
   if (filter?.status) cons.unshift(where("status", "==", filter.status));
   const snap = await getDocs(query(collection(db, "penugasan"), ...cons));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Penugasan, "id">) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<Penugasan, "id">) }))
+    .sort((a, b) => b.tanggal_tugas.localeCompare(a.tanggal_tugas))
+    .slice(0, 200);
 }
 
 export async function tambahPenugasan(t: Omit<Penugasan, "id" | "status">) {
@@ -171,12 +175,18 @@ export interface ProgresFoto {
 }
 
 export async function listProgres(penugasan_id: string): Promise<ProgresFoto[]> {
+  // tanpa orderBy server-side (hindari composite index) — sort di kode
   const snap = await getDocs(query(
     collection(db, "progres_foto"),
-    where("penugasan_id", "==", penugasan_id),
-    orderBy("waktu_server", "asc")
+    where("penugasan_id", "==", penugasan_id)
   ));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<ProgresFoto, "id">) }));
+  return snap.docs
+    .map((d) => ({ id: d.id, ...(d.data() as Omit<ProgresFoto, "id">) }))
+    .sort(
+      (a, b) =>
+        (a.waktu_server?.toMillis?.() ?? 0) -
+        (b.waktu_server?.toMillis?.() ?? 0)
+    );
 }
 
 export async function simpanProgres(input: {
@@ -424,6 +434,21 @@ export async function terimaNotif(id: string, nama: string) {
   });
 }
 
+/** Apakah user masih punya tugas khusus lain yang belum selesai. */
+async function tugasKhususAktifUntuk(uid: string, regu?: string): Promise<boolean> {
+  const snap = await getDocs(
+    query(collection(db, "notifikasi"), where("jenis", "==", "tugas_khusus"))
+  );
+  return snap.docs.some((d) => {
+    const n = d.data();
+    if (n.status === "selesai") return false;
+    if (n.target === "semua") return true;
+    if (n.target === "personel") return n.target_petugas_id === uid;
+    if (n.target === "regu") return n.target_regu === regu;
+    return false;
+  });
+}
+
 /** Selesaikan tugas khusus: beri poin ke target + kembalikan kunci GPS. */
 export async function selesaiNotif(n: Notif, nama: string) {
   await updateDoc(doc(db, "notifikasi", n.id), {
@@ -435,8 +460,11 @@ export async function selesaiNotif(n: Notif, nama: string) {
   const poin = n.poin || 0;
   const beriPoin = async (uid: string) => {
     const ref = doc(db, "users", uid);
-    const cur = (await getDoc(ref)).data()?.poin_bonus ?? 0;
-    await updateDoc(ref, { bebas_gps: false, poin_bonus: cur + poin });
+    const u = (await getDoc(ref)).data();
+    const cur = u?.poin_bonus ?? 0;
+    // kunci GPS dibuka kembali HANYA kalau tidak ada tugas khusus lain yang masih berjalan
+    const masihAda = await tugasKhususAktifUntuk(uid, u?.regu);
+    await updateDoc(ref, { bebas_gps: masihAda, poin_bonus: cur + poin });
   };
   if (n.target === "personel" && n.target_petugas_id) {
     await beriPoin(n.target_petugas_id);
@@ -444,7 +472,13 @@ export async function selesaiNotif(n: Notif, nama: string) {
     const snap = await getDocs(query(collection(db, "users"), where("regu", "==", n.target_regu)));
     await Promise.all(snap.docs.map((d) => beriPoin(d.id)));
   } else {
-    await setBebasGpsRegu(n.target_regu || "", false);
+    // target "semua" — buka kunci semua yang tidak punya tugas khusus lain
+    const usnap = await getDocs(query(collection(db, "users"), where("bebas_gps", "==", true)));
+    await Promise.all(usnap.docs.map(async (d) => {
+      if (!(await tugasKhususAktifUntuk(d.id, d.data().regu))) {
+        await updateDoc(d.ref, { bebas_gps: false });
+      }
+    }));
   }
 }
 
