@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  listPenugasan, Penugasan, listJadwalBulan, setJadwalShift, JadwalShift,
+  listPenugasan, Penugasan, listJadwalBulan, setJadwalShift, setJadwalMassal, JadwalShift,
   listPetugas, Petugas,
 } from "@/lib/data";
-import { JADWAL_SHIFT, LABEL_JENIS, URUTAN_JENIS } from "@/lib/absensi";
-import { namaRegu } from "@/lib/regu";
+import { JADWAL_SHIFT, LABEL_JENIS, URUTAN_JENIS, Shift } from "@/lib/absensi";
+import { namaRegu, REGU } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -31,6 +31,10 @@ export default function JadwalPage() {
   const [petugas, setPetugas] = useState<Petugas[]>([]);
   const [hariDipilih, setHariDipilih] = useState<string | null>(null);
   const [pesan, setPesan] = useState("");
+  // pola mingguan massal: indeks 0=Senin..6=Minggu
+  const [pola, setPola] = useState<Shift[]>(["pagi", "pagi", "pagi", "pagi", "pagi", "pagi", "libur"]);
+  const [polaRegu, setPolaRegu] = useState(""); // "" = semua petugas aktif
+  const [polaSibuk, setPolaSibuk] = useState(false);
 
   const prefix = `${tahun}-${String(bulan + 1).padStart(2, "0")}`;
   const isKasi = profil?.peran === "kasi_ekbang";
@@ -85,6 +89,36 @@ export default function JadwalPage() {
     await setJadwalShift(tanggal, p, shift);
     setPesan(`Shift ${p.nama} @ ${tanggal} → ${shift.toUpperCase()}`);
     muatJadwal();
+  };
+
+  // terapkan pola mingguan ke semua tanggal bulan ini untuk target petugas
+  const terapkanPola = async () => {
+    const target = petugas.filter((p) => p.aktif && (!polaRegu || p.regu === polaRegu));
+    if (!target.length) {
+      setPesan("Tidak ada petugas aktif pada target yang dipilih.");
+      return;
+    }
+    if (!confirm(
+      `Terapkan pola ini ke ${target.length} petugas untuk seluruh tanggal ${BULAN[bulan]} ${tahun}?\n` +
+      `Jadwal yang sudah diatur manual akan ditimpa sesuai pola.`
+    )) return;
+    setPolaSibuk(true);
+    try {
+      const items: { tanggal: string; p: Petugas; shift: Shift }[] = [];
+      for (let d = 1; d <= jmlHari; d++) {
+        const tgl = `${prefix}-${String(d).padStart(2, "0")}`;
+        const wd = (new Date(tahun, bulan, d).getDay() + 6) % 7; // Senin=0
+        const shift = pola[wd];
+        target.forEach((p) => items.push({ tanggal: tgl, p, shift }));
+      }
+      await setJadwalMassal(items);
+      setPesan(`✓ Pola diterapkan — ${items.length} jadwal ditulis untuk ${target.length} petugas.`);
+      muatJadwal();
+    } catch (e) {
+      setPesan(`Gagal: ${e instanceof Error ? e.message : e}`);
+    } finally {
+      setPolaSibuk(false);
+    }
   };
 
   const rowsBulan = tugas
@@ -195,6 +229,53 @@ export default function JadwalPage() {
           <span><i style={{ display: "inline-block", width: 10, height: 10, borderRadius: 3, background: WARNA_SHIFT.libur, marginRight: 5 }} />Libur</span>
         </div>
       </div>
+
+      {/* pola shift mingguan — terapkan sekaligus ke sebulan penuh */}
+      {isKasi && (
+        <div className="card3d" style={{ marginTop: 14, padding: 18 }}>
+          <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Pola Shift Mingguan</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
+            Atur pola Senin–Minggu sekali, lalu terapkan ke <b>{BULAN[bulan]} {tahun}</b> —
+            untuk semua petugas atau per regu. Tidak perlu klik tanggal satu per satu.
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
+            {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map((h, i) => (
+              <label key={h} style={{ fontSize: 11, fontWeight: 800, color: "var(--text-muted)" }}>
+                {h}
+                <select
+                  value={pola[i]}
+                  onChange={(e) => setPola(pola.map((s, j) => (j === i ? (e.target.value as Shift) : s)))}
+                  style={{
+                    display: "block", width: "100%", marginTop: 4, padding: "7px 8px", borderRadius: 9,
+                    border: "1px solid var(--border)", background: "var(--surface-2)", color: "var(--text)",
+                    fontSize: 12.5, fontWeight: 800, fontFamily: "inherit",
+                  }}
+                >
+                  <option value="pagi">PAGI</option>
+                  <option value="sore">SORE</option>
+                  <option value="libur">OFF</option>
+                </select>
+              </label>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+            <select
+              value={polaRegu}
+              onChange={(e) => setPolaRegu(e.target.value)}
+              style={{ padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit" }}
+            >
+              <option value="">Semua petugas aktif</option>
+              {REGU.map((r) => <option key={r.id} value={r.id}>Regu {r.nama}</option>)}
+            </select>
+            <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} disabled={polaSibuk} onClick={terapkanPola}>
+              {polaSibuk ? "Menulis jadwal…" : `Terapkan ke ${BULAN[bulan]}`}
+            </button>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>
+              per minggu: {pola.filter((s) => s === "pagi").length}× pagi, {pola.filter((s) => s === "sore").length}× sore, {pola.filter((s) => s === "libur").length}× OFF
+            </span>
+          </div>
+        </div>
+      )}
 
       {pesan && (
         <div className="card3d" style={{ marginTop: 12, padding: 10, fontSize: 13, fontWeight: 600, color: "var(--green-deep)" }}>{pesan}</div>

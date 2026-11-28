@@ -86,11 +86,33 @@ export default function ZonaMap({
       });
       Lref.current = L;
       const map = L.map(divRef.current).setView([-6.1667, 106.8], 14);
-      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      // OSM kadang ketinggalan — satelit Esri (gratis, tanpa key) lebih baru
+      // & menampilkan kondisi bangunan nyata untuk penempatan titik
+      const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution:
           '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(map);
+      });
+      const satelit = L.tileLayer(
+        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+        {
+          maxZoom: 19,
+          attribution: "Esri, Maxar, Earthstar Geographics",
+        }
+      );
+      const label = L.tileLayer(
+        "https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png",
+        { maxZoom: 19, subdomains: "abcd", attribution: "&copy; CARTO" }
+      );
+      osm.addTo(map);
+      // label jalan otomatis nyala di mode satelit, mati di mode peta (OSM sudah berlabel)
+      map.on("baselayerchange", (e) => {
+        if (e.name === "Peta") map.removeLayer(label);
+        else if (!map.hasLayer(label)) label.addTo(map);
+      });
+      L.control
+        .layers({ Peta: osm, "Satelit (kondisi terkini)": satelit }, { "Label jalan": label }, { position: "topright" })
+        .addTo(map);
       layerRef.current = L.layerGroup().addTo(map);
       map.on("click", (e) => {
         const p = propsRef.current;

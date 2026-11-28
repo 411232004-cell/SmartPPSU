@@ -1,7 +1,7 @@
 import {
   collection, doc, addDoc, setDoc, getDoc, getDocs, updateDoc,
   query, where, orderBy, limit, onSnapshot, serverTimestamp, Timestamp,
-  QueryConstraint, Unsubscribe,
+  QueryConstraint, Unsubscribe, writeBatch,
 } from "firebase/firestore";
 import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import { db, getSecondaryAuth } from "./firebase";
@@ -358,6 +358,24 @@ export async function setJadwalShift(
     { tanggal, petugas_id: p.id, nama_petugas: p.nama, shift },
     { merge: true }
   );
+}
+
+/** Set shift banyak petugas × banyak tanggal sekaligus (pola mingguan massal). */
+export async function setJadwalMassal(
+  items: { tanggal: string; p: { id: string; nama: string }; shift: "pagi" | "sore" | "libur" }[]
+) {
+  const CHUNK = 450; // batas aman writeBatch (maks 500)
+  for (let i = 0; i < items.length; i += CHUNK) {
+    const b = writeBatch(db);
+    items.slice(i, i + CHUNK).forEach((it) => {
+      b.set(
+        doc(db, "jadwal_shift", `${it.tanggal}_${it.p.id}`),
+        { tanggal: it.tanggal, petugas_id: it.p.id, nama_petugas: it.p.nama, shift: it.shift },
+        { merge: true }
+      );
+    });
+    await b.commit();
+  }
 }
 
 /** Shift petugas di tanggal tertentu: jadwal harian → default profil → "pagi". */
