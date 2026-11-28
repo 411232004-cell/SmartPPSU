@@ -8,6 +8,7 @@ import {
 } from "@/lib/data";
 import { getGPS } from "@/lib/capture";
 import { useAuth } from "@/lib/auth";
+import ZonaMap from "@/components/ZonaMap";
 
 const inputStyle: React.CSSProperties = {
   width: "100%", padding: "10px 12px", borderRadius: 10,
@@ -71,6 +72,20 @@ export default function PenugasanPage() {
   };
 
   const [sibukZona, setSibukZona] = useState<string | null>(null);
+  const [seleksiZona, setSeleksiZona] = useState("");
+
+  // pilih zona pertama begitu daftar termuat
+  useEffect(() => {
+    if (!seleksiZona && zonas.length) setSeleksiZona(zonas[0].id);
+  }, [zonas, seleksiZona]);
+
+  const setTitikDariPeta = async (zonaId: string, lat: number, lng: number) => {
+    const z = zonas.find((x) => x.id === zonaId);
+    await updateTitikZona(zonaId, lat, lng);
+    setPesan(`✓ Titik pusat "${z?.nama || zonaId}" → ${lat.toFixed(5)}, ${lng.toFixed(5)}.`);
+    muat();
+  };
+
   const setTitikDariGPS = async (z: Zona) => {
     setSibukZona(z.id);
     try {
@@ -155,11 +170,25 @@ export default function PenugasanPage() {
       <div className="card3d" style={{ marginTop: 16, padding: 18 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Titik pusat zona geofencing</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
-          Berdiri di wilayah zona (mis. pos RW 01) lalu klik &quot;Set titik dari GPS saya&quot; — koordinat tersimpan dan langsung dipakai validasi absen.
+          Pilih zona di daftar bawah, lalu <b>klik peta</b> atau <b>geser pin</b> untuk memindahkan titik pusatnya — lingkaran menunjukkan radius. Alternatif: berdiri di wilayah zona lalu klik &quot;Set titik dari GPS saya&quot;.
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <ZonaMap
+          zonas={zonas}
+          seleksiId={seleksiZona}
+          onPilih={setTitikDariPeta}
+          onKlikZona={setSeleksiZona}
+        />
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
           {zonas.map((z) => (
-            <div key={z.id} className="card3d-inset" style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div
+              key={z.id}
+              className="card3d-inset"
+              onClick={() => setSeleksiZona(z.id)}
+              style={{
+                padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", cursor: "pointer",
+                outline: z.id === seleksiZona ? "2px solid var(--orange)" : "none",
+              }}
+            >
               <div style={{ flex: 1, minWidth: 160 }}>
                 <div style={{ fontWeight: 700, fontSize: 13.5 }}>{z.nama}</div>
                 <div style={{ fontSize: 11, color: "var(--text-faint)" }}>

@@ -30,7 +30,10 @@ service cloud.firestore {
       allow read: if signedIn();
       // akun baru dibuat lewat secondary-auth → request.auth adalah user baru itu sendiri
       allow create: if isSelf(uid) || isAdmin();
-      allow update: if isSelf(uid) || isAdmin()
+      // diri sendiri hanya boleh menulis fcm_token (registrasi push notif).
+      // regu/zona_id/bebas_gps/poin_bonus TIDAK boleh ditulis sendiri → anti kabur geofence.
+      allow update: if isAdmin()
+        || (isSelf(uid) && hanyaUbah(['fcm_token']))
         // pengecualian sempit: penyelesaian tugas khusus regu menulis bebas_gps/poin_bonus
         // di dokumen anggota lain — kenaikan poin dibatasi ≤ 50
         || (hanyaUbah(['bebas_gps', 'poin_bonus'])

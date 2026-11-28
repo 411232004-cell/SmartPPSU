@@ -51,13 +51,15 @@ export default function AbsensiPage() {
 
       const bebasTugas = (await getDoc(doc(db, "users", profil.uid))).data()?.bebas_gps === true;
       const regu = reguById(profil.regu);
-      if (bebasTugas || !regu || regu.geofence === "bebas") {
+      // override per-personel (zona_id di dokumen petugas) menang atas default regu
+      const zonaId = profil.zona_id || regu?.zonaId;
+      if (bebasTugas || !zonaId) {
         setZona(null);
         setZonaLabel(bebasTugas ? "Bebas GPS — sedang tugas khusus" : "Bebas GPS (tanpa kunci lokasi)");
         return;
       }
       try {
-        const z = regu.zonaId ? await getZona(regu.zonaId) : null;
+        const z = await getZona(zonaId);
         const zz = z || ZONA_DEMO;
         setZona(zz);
         setZonaLabel(`Radius ${zz.radiusMeter} m — ${zz.nama}`);

@@ -7,7 +7,10 @@ import {
 import {
   listPenugasan, listProgres, simpanProgres, getZona, Penugasan, ProgresFoto,
 } from "@/lib/data";
-import { Zona, ZONA_DEMO } from "@/lib/absensi";
+import { Zona } from "@/lib/absensi";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { reguById } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
 import LoadingScreen from "@/components/LoadingScreen";
 
@@ -25,7 +28,7 @@ export default function ProgresPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const [zona, setZona] = useState<Zona>(ZONA_DEMO);
+  const [zona, setZona] = useState<Zona | null>(null);
   const [tugas, setTugas] = useState<Penugasan[]>([]);
   const [dipilih, setDipilih] = useState<Penugasan | null>(null);
   const [fotoAda, setFotoAda] = useState<Record<string, ProgresFoto>>({});
@@ -40,8 +43,12 @@ export default function ProgresPage() {
     (async () => {
       if (!profil) return;
       try {
-        if (profil.zona_id) {
-          const z = await getZona(profil.zona_id);
+        // zona efektif: override personel (zona_id) → default regu; bebas saat tugas khusus
+        const bebasTugas =
+          (await getDoc(doc(db, "users", profil.uid))).data()?.bebas_gps === true;
+        const zonaId = profil.zona_id || reguById(profil.regu)?.zonaId;
+        if (!bebasTugas && zonaId) {
+          const z = await getZona(zonaId);
           if (z) setZona(z);
         }
         const list = await listPenugasan({ petugas_id: profil.uid });
@@ -95,14 +102,16 @@ export default function ProgresPage() {
         nama: profil.nama, label: LABEL_TAHAP[tahap],
       });
 
-      const jarak = Math.round(jarakMeter(gps.lat, gps.lng, zona.lat, zona.lng));
+      const jarak = zona
+        ? Math.round(jarakMeter(gps.lat, gps.lng, zona.lat, zona.lng))
+        : 0;
       await simpanProgres({
         penugasan_id: dipilih.id,
         petugas_id: profil.uid,
         nama_petugas: profil.nama,
         tahap, foto,
         lat: gps.lat, lng: gps.lng, akurasi: gps.akurasi,
-        dalam_zona: jarak <= zona.radiusMeter,
+        dalam_zona: zona ? jarak <= zona.radiusMeter : true,
         jarak_meter: jarak,
       });
 

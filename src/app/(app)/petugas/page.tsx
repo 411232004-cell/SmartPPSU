@@ -72,7 +72,7 @@ export default function PetugasPage() {
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
           <thead>
             <tr style={{ background: "var(--surface-2)", textAlign: "left" }}>
-              {["Nama", "Email", "NIAP", "Zona", "Status", "Aksi"].map((h) => (
+              {["Nama", "Email", "NIAP", "Zona GPS (override)", "Status", "Aksi"].map((h) => (
                 <th key={h} style={{ padding: "12px 14px", fontWeight: 800 }}>{h}</th>
               ))}
             </tr>
@@ -89,7 +89,7 @@ export default function PetugasPage() {
                     value={p.zona_id || ""}
                     onChange={async (e) => { await updatePetugas(p.id, { zona_id: e.target.value }); muat(); }}
                   >
-                    <option value="">—</option>
+                    <option value="">Ikut zona regu</option>
                     {zonas.map((z) => <option key={z.id} value={z.id}>{z.nama}</option>)}
                   </select>
                 </td>
