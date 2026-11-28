@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import {
   listPetugas, listZona, listPenugasan, tambahPenugasan, simpanZona,
-  updateTitikZona, pastikanZonaDefault,
+  updateTitikZona, updateNamaZona, hapusZona, pastikanZonaDefault,
   Petugas, Zona, Penugasan,
 } from "@/lib/data";
 import { getGPS } from "@/lib/capture";
@@ -73,6 +73,11 @@ export default function PenugasanPage() {
 
   const [sibukZona, setSibukZona] = useState<string | null>(null);
   const [seleksiZona, setSeleksiZona] = useState("");
+  const [modePindah, setModePindah] = useState(false);
+  const [fokus, setFokus] = useState<{ lat: number; lng: number } | null>(null);
+  const [qCari, setQCari] = useState("");
+  const [hasilCari, setHasilCari] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [cariSibuk, setCariSibuk] = useState(false);
 
   // pilih zona pertama begitu daftar termuat
   useEffect(() => {
@@ -83,6 +88,64 @@ export default function PenugasanPage() {
     const z = zonas.find((x) => x.id === zonaId);
     await updateTitikZona(zonaId, lat, lng);
     setPesan(`✓ Titik pusat "${z?.nama || zonaId}" → ${lat.toFixed(5)}, ${lng.toFixed(5)}.`);
+    muat();
+  };
+
+  // cari alamat lewat Nominatim (OpenStreetMap) — gratis, tanpa API key
+  const cariLokasi = async () => {
+    const q = qCari.trim();
+    if (!q) return;
+    setCariSibuk(true);
+    setHasilCari([]);
+    try {
+      const qq = /jakarta|duri|tambora/i.test(q) ? q : `${q}, Duri Selatan, Tambora, Jakarta Barat`;
+      const url =
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=id` +
+        `&viewbox=106.77,-6.14,106.83,-6.19&q=${encodeURIComponent(qq)}`;
+      const r = await fetch(url, { headers: { "Accept-Language": "id" } });
+      const data = await r.json();
+      setHasilCari(data || []);
+      if (!data?.length) setPesan("Alamat tidak ditemukan — coba kata kunci lain.");
+    } catch {
+      setPesan("Pencarian alamat gagal — cek koneksi internet.");
+    } finally {
+      setCariSibuk(false);
+    }
+  };
+
+  const pakaiHasil = async (h: { display_name: string; lat: string; lon: string }) => {
+    if (!seleksiZona) return;
+    const lat = parseFloat(h.lat), lng = parseFloat(h.lon);
+    const z = zonas.find((x) => x.id === seleksiZona);
+    await updateTitikZona(seleksiZona, lat, lng);
+    setFokus({ lat, lng });
+    setHasilCari([]);
+    setPesan(`✓ "${z?.nama || seleksiZona}" dipindah ke: ${h.display_name.slice(0, 80)}`);
+    muat();
+  };
+
+  const gantiNama = async (z: Zona, nama: string) => {
+    if (!nama.trim() || nama === z.nama) return;
+    await updateNamaZona(z.id, nama.trim());
+    setPesan(`✓ Zona diganti nama → "${nama.trim()}".`);
+    muat();
+  };
+
+  const duplikatZona = async (z: Zona) => {
+    await simpanZona({
+      nama: `${z.nama} (salinan)`,
+      lat: z.lat + 0.0005, lng: z.lng + 0.0005,
+      radiusMeter: z.radiusMeter,
+    });
+    setPesan(`✓ "${z.nama}" diduplikat — geser pin salinannya ke titik baru.`);
+    muat();
+  };
+
+  const hapusZonaDipilih = async (z: Zona) => {
+    if (!confirm(`Hapus zona "${z.nama}"? Regu yang terikat zona ini kembali bebas GPS.`)) return;
+    await hapusZona(z.id);
+    if (seleksiZona === z.id) setSeleksiZona("");
+    setPesan(`✓ Zona "${z.nama}" dihapus.`);
     muat();
   };
 
@@ -170,14 +233,54 @@ export default function PenugasanPage() {
       <div className="card3d" style={{ marginTop: 16, padding: 18 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Titik pusat zona geofencing</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
-          Pilih zona di daftar bawah, lalu <b>klik peta</b> atau <b>geser pin</b> untuk memindahkan titik pusatnya — lingkaran menunjukkan radius. Alternatif: berdiri di wilayah zona lalu klik &quot;Set titik dari GPS saya&quot;.
+          Pilih zona di daftar bawah — lalu <b>geser pin</b>, <b>cari alamat</b>, atau aktifkan <b>klik-peta</b> untuk memindahkan titiknya. Lingkaran menunjukkan radius.
         </div>
         <ZonaMap
           zonas={zonas}
           seleksiId={seleksiZona}
+          klikAktif={modePindah}
+          fokus={fokus}
           onPilih={setTitikDariPeta}
           onKlikZona={setSeleksiZona}
         />
+
+        {/* alat pindah titik: mode klik-peta + pencarian alamat */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
+          <label style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input type="checkbox" checked={modePindah} onChange={(e) => setModePindah(e.target.checked)} />
+            Klik-peta untuk memindah titik zona terpilih (matikan jika selesai — anti salah-sentuh)
+          </label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              style={{ ...inputStyle, flex: 1 }}
+              placeholder='Cari alamat… mis. "RW 1 Kelurahan Duri Selatan"'
+              value={qCari}
+              onChange={(e) => setQCari(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && cariLokasi()}
+            />
+            <button className="btn3d" style={{ padding: "8px 14px", fontSize: 12 }} onClick={cariLokasi} disabled={cariSibuk}>
+              {cariSibuk ? "Mencari…" : "Cari"}
+            </button>
+          </div>
+          {hasilCari.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {hasilCari.map((h, i) => (
+                <button
+                  key={i}
+                  className="card3d-inset"
+                  style={{ padding: "8px 12px", fontSize: 12, textAlign: "left", cursor: "pointer", color: "var(--text)", border: "none" }}
+                  onClick={() => pakaiHasil(h)}
+                >
+                  {h.display_name}
+                </button>
+              ))}
+              <div style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                Klik hasil untuk memindahkan titik zona yang <b>terpilih</b> di daftar.
+              </div>
+            </div>
+          )}
+        </div>
+
         <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 12 }}>
           {zonas.map((z) => (
             <div
@@ -190,7 +293,14 @@ export default function PenugasanPage() {
               }}
             >
               <div style={{ flex: 1, minWidth: 160 }}>
-                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{z.nama}</div>
+                <input
+                  defaultValue={z.nama}
+                  title="Ketik nama zona — tersimpan saat klik di luar"
+                  style={{ ...inputStyle, padding: "6px 8px", fontSize: 13, fontWeight: 700, width: "100%", marginBottom: 3 }}
+                  onClick={(e) => e.stopPropagation()}
+                  onBlur={(e) => gantiNama(z, e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+                />
                 <div style={{ fontSize: 11, color: "var(--text-faint)" }}>
                   {z.lat.toFixed(5)}, {z.lng.toFixed(5)}
                 </div>
@@ -200,6 +310,7 @@ export default function PenugasanPage() {
                 <input
                   type="number" min={50} step={50} defaultValue={z.radiusMeter}
                   style={{ ...inputStyle, width: 90, padding: "6px 8px", fontSize: 12 }}
+                  onClick={(e) => e.stopPropagation()}
                   onBlur={(e) => {
                     const v = parseInt(e.target.value);
                     if (v && v !== z.radiusMeter) ubahRadius(z, v);
@@ -210,9 +321,26 @@ export default function PenugasanPage() {
                 className="btn3d"
                 style={{ padding: "8px 14px", fontSize: 12 }}
                 disabled={sibukZona === z.id}
-                onClick={() => setTitikDariGPS(z)}
+                title="Set titik pusat ke posisi GPS Anda saat ini"
+                onClick={(e) => { e.stopPropagation(); setTitikDariGPS(z); }}
               >
-                {sibukZona === z.id ? "Mengambil GPS…" : "Set titik dari GPS saya"}
+                {sibukZona === z.id ? "Mengambil GPS…" : "GPS saya"}
+              </button>
+              <button
+                className="btn3d"
+                style={{ padding: "8px 14px", fontSize: 12 }}
+                title="Duplikat titik ini — geser pin salinannya ke lokasi lain"
+                onClick={(e) => { e.stopPropagation(); duplikatZona(z); }}
+              >
+                Duplikat
+              </button>
+              <button
+                className="btn3d"
+                style={{ padding: "8px 14px", fontSize: 12, color: "#fff", background: "linear-gradient(180deg,#ef4444,#b91c1c)", boxShadow: "0 3px 0 #7f1d1d" }}
+                title="Hapus zona ini"
+                onClick={(e) => { e.stopPropagation(); hapusZonaDipilih(z); }}
+              >
+                Hapus
               </button>
             </div>
           ))}

@@ -8,17 +8,22 @@ import type { Zona } from "@/lib/data";
 /**
  * Peta OpenStreetMap (Leaflet) untuk mengatur titik pusat zona geofencing.
  * - Pin tiap zona bisa DIGESER langsung → menyimpan koordinat baru.
- * - Klik pada peta memindahkan titik pusat zona yang sedang dipilih.
+ * - Klik pada peta memindahkan titik pusat zona terpilih (hanya saat klikAktif).
  * - Lingkaran menampilkan radius geofence.
+ * - `fokus` menggerakkan kamera peta ke titik tertentu (hasil pencarian).
  */
 export default function ZonaMap({
   zonas,
   seleksiId,
+  klikAktif = true,
+  fokus,
   onPilih,
   onKlikZona,
 }: {
   zonas: Zona[];
   seleksiId?: string;
+  klikAktif?: boolean;
+  fokus?: { lat: number; lng: number } | null;
   onPilih: (zonaId: string, lat: number, lng: number) => void;
   onKlikZona?: (zonaId: string) => void;
 }) {
@@ -27,8 +32,9 @@ export default function ZonaMap({
   const layerRef = useRef<LayerGroup | null>(null);
   const Lref = useRef<typeof import("leaflet") | null>(null);
   const fittedRef = useRef(false);
-  const propsRef = useRef({ zonas, seleksiId, onPilih, onKlikZona });
-  propsRef.current = { zonas, seleksiId, onPilih, onKlikZona };
+  const fokusRef = useRef<typeof fokus>(null);
+  const propsRef = useRef({ zonas, seleksiId, klikAktif, onPilih, onKlikZona });
+  propsRef.current = { zonas, seleksiId, klikAktif, onPilih, onKlikZona };
 
   const renderLayers = () => {
     const L = Lref.current;
@@ -50,7 +56,7 @@ export default function ZonaMap({
       }).addTo(g);
       const m = L.marker([z.lat, z.lng], { draggable: true })
         .addTo(g)
-        .bindTooltip(`${z.nama} — geser pin / klik peta`, {
+        .bindTooltip(`${z.nama} — geser pin`, {
           direction: "top",
           offset: [0, -10],
         });
@@ -88,7 +94,7 @@ export default function ZonaMap({
       layerRef.current = L.layerGroup().addTo(map);
       map.on("click", (e) => {
         const p = propsRef.current;
-        if (p.seleksiId) p.onPilih(p.seleksiId, e.latlng.lat, e.latlng.lng);
+        if (p.klikAktif && p.seleksiId) p.onPilih(p.seleksiId, e.latlng.lat, e.latlng.lng);
       });
       mapRef.current = map;
       renderLayers();
@@ -104,6 +110,14 @@ export default function ZonaMap({
   useEffect(() => {
     renderLayers();
   }, [zonas, seleksiId]);
+
+  // terbang ke titik fokus (hasil pencarian alamat)
+  useEffect(() => {
+    if (fokus && fokus !== fokusRef.current && mapRef.current) {
+      mapRef.current.flyTo([fokus.lat, fokus.lng], 18);
+    }
+    fokusRef.current = fokus;
+  }, [fokus]);
 
   return (
     <div

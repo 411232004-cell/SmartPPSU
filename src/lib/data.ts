@@ -57,6 +57,19 @@ export async function updateTitikZona(id: string, lat: number, lng: number, radi
   await updateDoc(doc(db, "zona", id), data);
 }
 
+/** Ganti nama/alamat zona tanpa menyentuh titik pusat. */
+export async function updateNamaZona(id: string, nama: string, alamat?: string) {
+  const data: Record<string, unknown> = { nama_zona: nama };
+  if (alamat !== undefined) data.alamat = alamat;
+  await updateDoc(doc(db, "zona", id), data);
+}
+
+/** Hapus dokumen zona — regu yang terkait zona ini kembali bebas GPS. */
+export async function hapusZona(id: string) {
+  const { deleteDoc } = await import("firebase/firestore");
+  await deleteDoc(doc(db, "zona", id));
+}
+
 // ---------- PETUGAS ----------
 export interface Petugas {
   id: string;
