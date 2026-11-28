@@ -6,7 +6,7 @@ import { db } from "@/lib/firebase";
 import { KRITERIA, SKALA, SkorIndikator, hitungSMART } from "@/lib/penilaian";
 import { listPetugas, Petugas } from "@/lib/data";
 import { useAuth } from "@/lib/auth";
-import LoadingScreen from "@/components/LoadingScreen";
+import InlineLoader from "@/components/InlineLoader";
 
 type SkorMap = Record<string, SkorIndikator[]>;
 
@@ -306,7 +306,7 @@ export default function PenilaianPage() {
 
       {!dipilih && (
         <div style={{ display: "flex", justifyContent: "center", marginTop: 40 }}>
-          <LoadingScreen label="Pilih Petugas untuk Menilai" />
+          <InlineLoader label="Pilih Petugas untuk Menilai" />
         </div>
       )}
     </div>

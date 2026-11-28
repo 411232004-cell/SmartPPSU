@@ -12,7 +12,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { reguById } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
-import LoadingScreen from "@/components/LoadingScreen";
+import InlineLoader from "@/components/InlineLoader";
 
 const TAHAP = ["0", "50", "100"] as const;
 const LABEL_TAHAP: Record<string, string> = {
@@ -211,7 +211,7 @@ export default function ProgresPage() {
         </>
       )}
 
-      {sibuk && <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}><LoadingScreen label="Mengunggah Foto" /></div>}
+      {sibuk && <div style={{ display: "flex", justifyContent: "center", marginTop: 18 }}><InlineLoader label="Mengunggah Foto" /></div>}
       {pesan && <div className="card3d" style={{ marginTop: 14, padding: 12, fontSize: 13, fontWeight: 600 }}>{pesan}</div>}
     </div>
   );

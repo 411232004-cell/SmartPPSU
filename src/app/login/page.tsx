@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import ThemeToggle from "@/components/ThemeToggle";
-import LoadingScreen from "@/components/LoadingScreen";
+import InlineLoader from "@/components/InlineLoader";
 
 declare global {
   interface Window {
@@ -107,7 +107,7 @@ export default function LoginPage() {
       <div className="glass-circle">
         {loading ? (
           <div style={{ padding: "40px 0", zIndex: 10 }}>
-            <LoadingScreen label="Memproses Login" />
+            <InlineLoader label="Memproses Login" />
           </div>
         ) : (
           <form className="bubble-form" onSubmit={submit}>
