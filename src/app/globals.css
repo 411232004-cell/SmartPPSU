@@ -22,8 +22,8 @@
   --green-deep: #2f8f57;
 
   --text: #3d2b1f;
-  --text-muted: #8a715d;
-  --text-faint: #b59d8a;
+  --text-muted: #6e563e;
+  --text-faint: #93775c;
 
   --danger: #e5534b;
 
@@ -50,8 +50,8 @@ html.night {
   --green-deep: #57b47e;
 
   --text: #f5ede4;
-  --text-muted: #c4ad98;
-  --text-faint: #8a715d;
+  --text-muted: #dccbb7;
+  --text-faint: #a8947d;
 
   --shadow-3d: 0 4px 0 #7a3d12, 0 8px 18px rgba(0,0,0,0.5);
   --shadow-3d-green: 0 4px 0 #235c3d, 0 8px 18px rgba(0,0,0,0.5);
@@ -62,8 +62,14 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-weight: 500;
   transition: background 0.4s ease, color 0.4s ease;
 }
+
+/* teks dipertebal supaya jelas terbaca di semua halaman */
+.page-sub { font-weight: 600; }
+table td { font-weight: 500; }
+label { font-weight: 600; }
 
 /* ============================================================
    3D ANATOMI BUTTON — efek tombol timbul, tekan masuk
@@ -882,7 +888,7 @@ html.night .login-bg {
     --offset: -12%;
     opacity: 1;
     pointer-events: auto;
-    transform: rotate(calc(var(--i) * 60deg));
+    transform: rotate(calc(var(--i) * (360deg / var(--n, 6))));
     transition:
       transform 0.5s ease calc((var(--i) + 1) * 0.05s),
       opacity 0.5s ease 0.2s;
@@ -917,8 +923,8 @@ html.night .login-bg {
     padding: 0;
     cursor: pointer;
     color: #fff;
-    opacity: 0.45;
-    transform: rotate(calc(var(--i) * -60deg));
+    opacity: 1;
+    transform: rotate(calc(var(--i) * (-360deg / var(--n, 6))));
     transition: top 0.5s ease, opacity 0.3s;
   }
   .dial .dial-ic svg {
@@ -929,11 +935,38 @@ html.night .login-bg {
     font-size: 9.5px;
     font-weight: 800;
     letter-spacing: 0.2px;
-    color: rgba(255, 255, 255, 0.85);
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
     white-space: nowrap;
   }
   .dial li.selected .dial-ic { opacity: 1; }
   .dial .dial-ic:active { opacity: 1; }
+}
+
+/* tombol tutup dial — muncul di bawah lingkaran menu saat terbuka */
+@media (max-width: 820px) {
+  .dial-close {
+    position: fixed;
+    bottom: calc(96px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 49;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 22px;
+    font-weight: 900;
+    font-family: inherit;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    box-shadow: var(--shadow-card);
+    animation: dialFade 0.25s ease;
+  }
+  .dial-close:active { transform: translateX(-50%) scale(0.92); }
 }
 
 /* ============================================================

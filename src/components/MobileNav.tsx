@@ -109,6 +109,7 @@ export default function MobileNav({
           { href: "/absensi", label: "Absensi", icon: I.absen },
           { href: "/progres", label: "Progres", icon: I.kamera },
           { href: "/tugas", label: "Tugas", icon: I.tugas },
+          { href: "/jadwal", label: "Jadwal", icon: I.jadwal },
           { href: "/kendala", label: "Kendala", icon: I.kendala },
           { href: "/nilai-saya", label: "Nilai", icon: I.nilai },
           { href: "/zona", label: "Regu/Zona", icon: I.zona },
@@ -122,6 +123,16 @@ export default function MobileNav({
           onClick={() => setOpen(false)}
           aria-hidden="true"
         />
+      )}
+      {open && (
+        <button
+          type="button"
+          className="dial-close"
+          onClick={() => setOpen(false)}
+          aria-label="Tutup menu fitur"
+        >
+          ✕
+        </button>
       )}
       <nav className="mobile-nav">
         <Link href="/dashboard" className={pathname === "/dashboard" ? "active" : ""}>
@@ -138,7 +149,7 @@ export default function MobileNav({
               aria-expanded={open}
               onClick={() => setOpen((o) => !o)}
             />
-            <ul>
+            <ul style={{ "--n": fitur.length } as React.CSSProperties}>
               {fitur.map((it, i) => (
                 <li
                   key={it.href}

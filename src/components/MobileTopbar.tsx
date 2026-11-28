@@ -1,7 +1,6 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import ThemeToggle from "./ThemeToggle";
 import NotifBell from "./NotifBell";
 
 export default function MobileTopbar() {
@@ -29,7 +28,6 @@ export default function MobileTopbar() {
       <span className="mtb-title">Smart PPSU</span>
       <div className="mtb-side" style={{ justifyContent: "flex-end", gap: 8 }}>
         <NotifBell />
-        <ThemeToggle />
       </div>
     </div>
   );

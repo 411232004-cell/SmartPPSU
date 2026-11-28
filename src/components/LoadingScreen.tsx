@@ -1,9 +1,17 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { gambarSplash } from "./SplashScreen";
+
 // Splash screen — desain logo Smart PPSU saat aplikasi dimuat
 export default function LoadingScreen({
   label = "Memuat Aplikasi…",
 }: {
   label?: string;
 }) {
+  const [src, setSrc] = useState("/splash.png");
+  useEffect(() => setSrc(gambarSplash()), []);
+
   return (
     <div
       role="status"
@@ -17,7 +25,7 @@ export default function LoadingScreen({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/splash.png"
+        src={src}
         alt="Smart PPSU — Memuat Aplikasi"
         style={{
           width: "100%",

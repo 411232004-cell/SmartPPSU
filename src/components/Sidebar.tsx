@@ -101,6 +101,7 @@ export default function Sidebar({
           { href: "/absensi", label: "Absensi", icon: I.absen },
           { href: "/progres", label: "Foto Progres", icon: I.kamera },
           { href: "/tugas", label: "Penugasan Saya", icon: I.tugas },
+          { href: "/jadwal", label: "Jadwal Saya", icon: I.jadwal },
           { href: "/zona", label: "Regu & Zona", icon: I.zona },
           { href: "/kendala", label: "Lapor Kendala", icon: I.monitor },
         ];

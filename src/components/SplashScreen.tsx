@@ -6,12 +6,22 @@ import { useEffect, useState } from "react";
  * Splash overlay — tampil sekali tiap aplikasi dibuka/di-reload.
  * Di Android, layar launch bawaan hanya ikon+warna (tidak bisa gambar custom),
  * jadi overlay ini menampilkan desain splash tepat setelah app termuat.
+ * Gambar dipilih sesuai orientasi layar (portrait HP / landscape desktop).
  */
+export function gambarSplash(): string {
+  if (typeof window === "undefined") return "/splash.png";
+  return window.innerWidth > window.innerHeight
+    ? "/splash-wide.png"
+    : "/splash.png";
+}
+
 export default function SplashScreen() {
   const [tampil, setTampil] = useState(true);
   const [fade, setFade] = useState(false);
+  const [src, setSrc] = useState("/splash.png");
 
   useEffect(() => {
+    setSrc(gambarSplash());
     const t1 = setTimeout(() => setFade(true), 1500);
     const t2 = setTimeout(() => setTampil(false), 2100);
     return () => {
@@ -36,7 +46,7 @@ export default function SplashScreen() {
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/splash.png"
+        src={src}
         alt=""
         style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
       />
