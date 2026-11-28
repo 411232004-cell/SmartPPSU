@@ -708,8 +708,14 @@ html.night .login-bg {
     cursor: pointer;
   }
   .mtb-back:active { transform: scale(0.95); }
-  .mtb-title { font-weight: 800; font-size: 15px; letter-spacing: 0.3px; display: inline-flex; align-items: center; gap: 7px; }
-  .mtb-logo { border-radius: 50%; }
+  .mtb-title {
+    font-weight: 900; font-size: 18px; letter-spacing: 0.3px;
+    display: inline-flex; align-items: center; gap: 9px;
+    background: linear-gradient(180deg, var(--orange-soft), var(--orange-deep));
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+  .mtb-logo { border-radius: 50%; box-shadow: 0 2px 0 var(--orange-dark); }
 }
 
 /* ============================================================

@@ -27,7 +27,7 @@ export default function MobileTopbar() {
       </div>
       <span className="mtb-title">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="mtb-logo" src="/assets/logo-sm.png" alt="" width={22} height={22} />
+        <img className="mtb-logo" src="/assets/logo-sm.png" alt="" width={32} height={32} />
         Smart PPSU
       </span>
       <div className="mtb-side" style={{ justifyContent: "flex-end", gap: 8 }}>
