@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { getServerTimeOffset, serverNow, getGPS, jarakMeter, resizeWatermark } from "@/lib/capture";
@@ -23,7 +23,8 @@ export default function AbsensiPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [offset, setOffset] = useState(0);
-  const [now, setNow] = useState(new Date());
+  // tick tiap 15 dtk — nilai tak dipakai langsung, hanya memicu render ulang
+  const [, setTick] = useState(0);
   const [shift, setShift] = useState<Shift | null>(null);
   const [zona, setZona] = useState<Zona | null | undefined>(undefined); // undefined = loading, null = bebas
   const [zonaLabel, setZonaLabel] = useState("");
@@ -36,12 +37,13 @@ export default function AbsensiPage() {
   const [pesan, setPesan] = useState<{ teks: string; ok: boolean } | null>(null);
 
   const hariIni = new Date().toISOString().slice(0, 10);
-  const waktuServer = useMemo(() => serverNow(offset), [offset, now]);
+  // tidak perlu useMemo — komponen sudah render ulang tiap tick `now`
+  const waktuServer = serverNow(offset);
 
   // refresh jam tiap 15 dtk agar status tombol ikut berubah
   useEffect(() => {
     getServerTimeOffset().then(setOffset);
-    const t = setInterval(() => setNow(new Date()), 15000);
+    const t = setInterval(() => setTick((n) => n + 1), 15000);
     return () => clearInterval(t);
   }, []);
 

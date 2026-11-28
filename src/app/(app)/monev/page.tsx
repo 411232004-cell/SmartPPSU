@@ -4,9 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { listPetugas, Petugas } from "@/lib/data";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+// jspdf & xlsx di-import dinamis saat klik ekspor — menghemat ~450KB dari bundle halaman
+async function loadEksporLib() {
+  const [{ default: jsPDF }, { default: autoTable }, XLSX] = await Promise.all([
+    import("jspdf"), import("jspdf-autotable"), import("xlsx"),
+  ]);
+  return { jsPDF, autoTable, XLSX };
+}
 
 interface Rekap {
   petugas: Petugas;
@@ -27,6 +31,7 @@ export default function MonevPage() {
 
   const muat = async () => {
     setLoading(true);
+    try {
     const petugas = await listPetugas();
     const awal = `${periode}-01-01`, akhir = `${periode}-12-31`;
 
@@ -83,7 +88,11 @@ export default function MonevPage() {
     dinilai.forEach((r, i) => { r.peringkat = i + 1; });
 
     setRows(rekap.sort((a, b) => (a.peringkat || 999) - (b.peringkat || 999)));
-    setLoading(false);
+    } catch (e) {
+      console.error("Monev gagal dimuat:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,7 +100,8 @@ export default function MonevPage() {
 
   const sudahDinilai = rows.filter((r) => r.nilaiAkhir !== null).length;
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const { jsPDF, autoTable } = await loadEksporLib();
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text(`Laporan Monev PPSU — Periode ${periode}`, 14, 16);
@@ -111,7 +121,8 @@ export default function MonevPage() {
     doc.save(`monev-ppsu-${periode}.pdf`);
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const { XLSX } = await loadEksporLib();
     const data = rows.map((r, i) => ({
       No: i + 1, Nama: r.petugas.nama, Email: r.petugas.email,
       Hadir: r.hadir, Istirahat: r.istirahat,

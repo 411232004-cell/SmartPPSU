@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   listPenugasan, Penugasan, listJadwalBulan, setJadwalShift, setJadwalMassal, JadwalShift,
   listPetugas, Petugas,
@@ -10,9 +10,14 @@ import { namaRegu } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
 import { auth } from "@/lib/firebase";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import * as XLSX from "xlsx";
+
+// jspdf & xlsx di-import dinamis saat klik ekspor — menghemat ~450KB dari bundle halaman
+async function loadEksporLib() {
+  const [{ default: jsPDF }, { default: autoTable }, XLSX] = await Promise.all([
+    import("jspdf"), import("jspdf-autotable"), import("xlsx"),
+  ]);
+  return { jsPDF, autoTable, XLSX };
+}
 
 const HARI = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
 const BULAN = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -43,14 +48,15 @@ export default function JadwalPage() {
   const prefix = `${tahun}-${String(bulan + 1).padStart(2, "0")}`;
   const isKasi = profil?.peran === "kasi_ekbang";
 
-  const muatJadwal = () => listJadwalBulan(prefix).then(setJadwal).catch(() => {});
+  const muatJadwal = useCallback(() =>
+    listJadwalBulan(prefix).then(setJadwal).catch(() => {}), [prefix]);
 
   useEffect(() => {
     listPenugasan(profil?.peran === "petugas_ppsu" ? { petugas_id: profil.uid } : undefined)
       .then(setTugas).catch(() => {});
   }, [profil]);
 
-  useEffect(() => { muatJadwal(); }, [prefix]);
+  useEffect(() => { muatJadwal(); }, [muatJadwal]);
   useEffect(() => { if (isKasi) listPetugas().then(setPetugas); }, [isKasi]);
 
   const perTanggal = useMemo(() => {
@@ -160,7 +166,8 @@ export default function JadwalPage() {
     .filter((t) => t.tanggal_tugas?.startsWith(prefix))
     .sort((a, b) => a.tanggal_tugas.localeCompare(b.tanggal_tugas));
 
-  const exportPDF = () => {
+  const exportPDF = async () => {
+    const { jsPDF, autoTable } = await loadEksporLib();
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text(`Jadwal PPSU — ${BULAN[bulan]} ${tahun}`, 14, 16);
@@ -178,7 +185,8 @@ export default function JadwalPage() {
     doc.save(`jadwal-ppsu-${prefix}.pdf`);
   };
 
-  const exportExcel = () => {
+  const exportExcel = async () => {
+    const { XLSX } = await loadEksporLib();
     const ws = XLSX.utils.json_to_sheet(
       rowsBulan.map((t) => ({
         Tanggal: t.tanggal_tugas, Petugas: t.nama_petugas || t.petugas_id,

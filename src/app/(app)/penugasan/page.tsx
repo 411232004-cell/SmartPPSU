@@ -10,12 +10,7 @@ import { getGPS } from "@/lib/capture";
 import { useAuth } from "@/lib/auth";
 import ZonaMap from "@/components/ZonaMap";
 import { useConfirmDialog } from "@/components/ConfirmDialog";
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "10px 12px", borderRadius: 10,
-  border: "1px solid var(--border)", background: "var(--surface)",
-  color: "var(--text)", fontSize: 14, fontFamily: "inherit",
-};
+import { inputStyle, fetchRetry } from "@/lib/ui";
 
 export default function PenugasanPage() {
   const { tanya, dialog } = useConfirmDialog();
@@ -107,7 +102,7 @@ export default function PenugasanPage() {
           `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=id` +
           `&viewbox=106.77,-6.14,106.83,-6.19${bounded ? "&bounded=1" : ""}` +
           `&q=${encodeURIComponent(qq)}`;
-        const r = await fetch(url, { headers: { "Accept-Language": "id" } });
+        const r = await fetchRetry(url, { headers: { "Accept-Language": "id" } });
         return ((await r.json()) || []) as { display_name: string; lat: string; lon: string }[];
       };
       let data = await fetchHasil(true); // hanya di dalam Duri Selatan

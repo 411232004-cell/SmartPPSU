@@ -5,6 +5,7 @@ import {
   listPetugas, buatAkunPetugas, updatePetugas, listZona, Petugas, Zona,
 } from "@/lib/data";
 import DeleteButton from "@/components/DeleteButton";
+import { inputStyle } from "@/lib/ui";
 
 export default function PetugasPage() {
   const [list, setList] = useState<Petugas[]>([]);
@@ -37,12 +38,6 @@ export default function PetugasPage() {
   const toggleAktif = async (p: Petugas) => {
     await updatePetugas(p.id, { aktif: !p.aktif });
     muat();
-  };
-
-  const inputStyle: React.CSSProperties = {
-    width: "100%", padding: "10px 12px", borderRadius: 10,
-    border: "1px solid var(--border)", background: "var(--surface)",
-    color: "var(--text)", fontSize: 14, fontFamily: "inherit",
   };
 
   return (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import {
   listPetugas, updatePetugas, Petugas,
@@ -8,12 +8,7 @@ import {
 } from "@/lib/data";
 import { REGU, namaRegu } from "@/lib/regu";
 import { auth } from "@/lib/firebase";
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", padding: "8px 10px", borderRadius: 10,
-  border: "1px solid rgba(255,255,255,0.25)", background: "rgba(0,0,0,0.3)",
-  color: "#fff", fontSize: 12.5, fontFamily: "inherit",
-};
+import { inputStyleDark as inputStyle } from "@/lib/ui";
 
 export default function ZonaPage() {
   const { profil } = useAuth();
@@ -21,11 +16,15 @@ export default function ZonaPage() {
   const [petugas, setPetugas] = useState<Petugas[]>([]);
   const [pesan, setPesan] = useState("");
 
-  const muat = async () => {
+  const muat = useCallback(async () => {
     if (isAdmin) pastikanZonaDefault().catch(() => {});
-    setPetugas(await listPetugas());
-  };
-  useEffect(() => { muat(); }, []);
+    try {
+      setPetugas(await listPetugas());
+    } catch (e) {
+      console.error("Gagal memuat daftar petugas:", e);
+    }
+  }, [isAdmin]);
+  useEffect(() => { muat(); }, [muat]);
 
   const assign = async (petugasId: string, regu: string) => {
     if (!petugasId) return;
