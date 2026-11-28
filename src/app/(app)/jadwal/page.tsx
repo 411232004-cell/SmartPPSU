@@ -8,6 +8,7 @@ import {
 import { JADWAL_SHIFT, LABEL_JENIS, URUTAN_JENIS, Shift } from "@/lib/absensi";
 import { namaRegu } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
+import { auth } from "@/lib/firebase";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -86,10 +87,26 @@ export default function JadwalPage() {
     setHariDipilih(null);
   };
 
+  // push ke petugas saat jadwalnya berubah — bunyi walau aplikasi tertutup
+  const kirimPush = (judul: string, deskripsi: string, target: "personel" | "semua", uid?: string) => {
+    auth.currentUser?.getIdToken().then((t) => {
+      if (!t) return;
+      fetch("/api/push", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        body: JSON.stringify({
+          judul, deskripsi, target,
+          target_petugas_id: target === "personel" ? uid : undefined,
+        }),
+      }).catch(() => {});
+    }).catch(() => {});
+  };
+
   const ubahShift = async (tanggal: string, p: Petugas, shift: "pagi" | "sore" | "libur") => {
     await setJadwalShift(tanggal, p, shift);
     setPesan(`Shift ${p.nama} @ ${tanggal} → ${shift.toUpperCase()}`);
     muatJadwal();
+    kirimPush("Jadwal shift diubah", `Shift kamu ${tanggal} → ${shift.toUpperCase()}. Cek menu Jadwal.`, "personel", p.id);
   };
 
   // terapkan pola mingguan ke target personel — 1 sampai 3 bulan sekaligus
@@ -123,6 +140,12 @@ export default function JadwalPage() {
       await setJadwalMassal(items);
       setPesan(`✓ Pola diterapkan — ${items.length} jadwal untuk ${namaTgt} (${polaBulan} bulan).`);
       muatJadwal();
+      kirimPush(
+        "Jadwal shift diterbitkan",
+        `Jadwal shift ${polaBulan > 1 ? `${polaBulan} bulan` : `bulan ${BULAN[bulan]}`} sudah tersedia — cek menu Jadwal.`,
+        polaTarget ? "personel" : "semua",
+        polaTarget || undefined
+      );
     } catch (e) {
       setPesan(`Gagal: ${e instanceof Error ? e.message : e}`);
     } finally {
