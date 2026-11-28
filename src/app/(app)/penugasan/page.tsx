@@ -91,21 +91,29 @@ export default function PenugasanPage() {
     muat();
   };
 
-  // cari alamat lewat Nominatim (OpenStreetMap) — gratis, tanpa API key
+  // cari alamat lewat Nominatim (OpenStreetMap) — gratis, tanpa API key.
+  // Hasil dikunci ke wilayah Duri Selatan dulu; kalau kosong baru cari luas.
   const cariLokasi = async () => {
     const q = qCari.trim();
     if (!q) return;
     setCariSibuk(true);
     setHasilCari([]);
     try {
-      const qq = /jakarta|duri|tambora/i.test(q) ? q : `${q}, Duri Selatan, Tambora, Jakarta Barat`;
-      const url =
-        `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=id` +
-        `&viewbox=106.77,-6.14,106.83,-6.19&q=${encodeURIComponent(qq)}`;
-      const r = await fetch(url, { headers: { "Accept-Language": "id" } });
-      const data = await r.json();
-      setHasilCari(data || []);
-      if (!data?.length) setPesan("Alamat tidak ditemukan — coba kata kunci lain.");
+      const qq = /jakarta|tambora/i.test(q) ? q : `${q}, Duri Selatan, Tambora, Jakarta Barat`;
+      const fetchHasil = async (bounded: boolean) => {
+        const url =
+          `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=id` +
+          `&viewbox=106.77,-6.14,106.83,-6.19${bounded ? "&bounded=1" : ""}` +
+          `&q=${encodeURIComponent(qq)}`;
+        const r = await fetch(url, { headers: { "Accept-Language": "id" } });
+        return ((await r.json()) || []) as { display_name: string; lat: string; lon: string }[];
+      };
+      let data = await fetchHasil(true); // hanya di dalam Duri Selatan
+      if (!data.length) data = await fetchHasil(false); // cadangan: pencarian luas
+      setHasilCari(data);
+      if (!data.length) {
+        setPesan("Alamat tidak ditemukan — geser pin di mode satelit untuk menempatkan titik langsung.");
+      }
     } catch {
       setPesan("Pencarian alamat gagal — cek koneksi internet.");
     } finally {
