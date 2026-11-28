@@ -25,7 +25,11 @@ export default function MobileTopbar() {
           </button>
         )}
       </div>
-      <span className="mtb-title">Smart PPSU</span>
+      <span className="mtb-title">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="mtb-logo" src="/assets/logo-sm.png" alt="" width={22} height={22} />
+        Smart PPSU
+      </span>
       <div className="mtb-side" style={{ justifyContent: "flex-end", gap: 8 }}>
         <NotifBell />
       </div>
