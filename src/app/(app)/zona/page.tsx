@@ -154,7 +154,7 @@ export default function ZonaPage() {
                   >
                     <option value="">＋ Tambah anggota…</option>
                     {aktif
-                      .filter((p) => p.regu !== r.id)
+                      .filter((p) => !p.regu)
                       .map((p) => (
                         <option key={p.id} value={p.id}>{p.nama}</option>
                       ))}
