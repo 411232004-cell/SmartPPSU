@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { AuthProvider } from "@/lib/auth";
+import SplashScreen from "@/components/SplashScreen";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -45,6 +46,7 @@ export default function RootLayout({
         <link rel="apple-touch-startup-image" href="/splash/ipad-pro-129.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
       </head>
       <body>
+        <SplashScreen />
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
