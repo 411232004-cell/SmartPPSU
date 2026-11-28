@@ -3,8 +3,10 @@
 import { useEffect, useState } from "react";
 import {
   listPetugas, listZona, listPenugasan, tambahPenugasan, simpanZona,
+  updateTitikZona, pastikanZonaDefault,
   Petugas, Zona, Penugasan,
 } from "@/lib/data";
+import { getGPS } from "@/lib/capture";
 import { useAuth } from "@/lib/auth";
 
 const inputStyle: React.CSSProperties = {
@@ -31,6 +33,7 @@ export default function PenugasanPage() {
   });
 
   const muat = async () => {
+    pastikanZonaDefault().catch(() => {});
     const [p, z, t] = await Promise.all([listPetugas(), listZona(), listPenugasan()]);
     setPetugas(p); setZonas(z); setTugas(t.slice(0, 30));
   };
@@ -64,6 +67,28 @@ export default function PenugasanPage() {
     });
     setPesan("✓ Zona tersimpan — langsung dipakai untuk geofencing absensi.");
     setZonaForm({ nama: "", alamat: "", lat: "", lng: "", radiusMeter: "300", jamMasuk: "07:00", jamPulang: "15:00" });
+    muat();
+  };
+
+  const [sibukZona, setSibukZona] = useState<string | null>(null);
+  const setTitikDariGPS = async (z: Zona) => {
+    setSibukZona(z.id);
+    try {
+      const p = await getGPS();
+      await updateTitikZona(z.id, p.coords.latitude, p.coords.longitude);
+      setPesan(`✓ Titik pusat "${z.nama}" diset ke lokasi Anda (${p.coords.latitude.toFixed(5)}, ${p.coords.longitude.toFixed(5)}).`);
+      muat();
+    } catch {
+      setPesan("GPS gagal — nyalakan lokasi lalu coba lagi.");
+    } finally {
+      setSibukZona(null);
+    }
+  };
+
+  const ubahRadius = async (z: Zona, radius: number) => {
+    if (!radius || radius <= 0) return;
+    await updateTitikZona(z.id, z.lat, z.lng, radius);
+    setPesan(`✓ Radius "${z.nama}" → ${radius} m.`);
     muat();
   };
 
@@ -124,6 +149,48 @@ export default function PenugasanPage() {
           Tips: ambil koordinat dari Google Maps (klik kanan titik → salin koordinat).
         </div>
         <button className="btn3d green" style={{ marginTop: 12 }} onClick={buatZona}>Simpan Zona</button>
+      </div>
+
+      {/* daftar zona: set titik pusat & radius langsung dari lokasi admin */}
+      <div className="card3d" style={{ marginTop: 16, padding: 18 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Titik pusat zona geofencing</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+          Berdiri di wilayah zona (mis. pos RW 01) lalu klik &quot;Set titik dari GPS saya&quot; — koordinat tersimpan dan langsung dipakai validasi absen.
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {zonas.map((z) => (
+            <div key={z.id} className="card3d-inset" style={{ padding: "10px 14px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 160 }}>
+                <div style={{ fontWeight: 700, fontSize: 13.5 }}>{z.nama}</div>
+                <div style={{ fontSize: 11, color: "var(--text-faint)" }}>
+                  {z.lat.toFixed(5)}, {z.lng.toFixed(5)}
+                </div>
+              </div>
+              <label style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 5 }}>
+                Radius (m)
+                <input
+                  type="number" min={50} step={50} defaultValue={z.radiusMeter}
+                  style={{ ...inputStyle, width: 90, padding: "6px 8px", fontSize: 12 }}
+                  onBlur={(e) => {
+                    const v = parseInt(e.target.value);
+                    if (v && v !== z.radiusMeter) ubahRadius(z, v);
+                  }}
+                />
+              </label>
+              <button
+                className="btn3d"
+                style={{ padding: "8px 14px", fontSize: 12 }}
+                disabled={sibukZona === z.id}
+                onClick={() => setTitikDariGPS(z)}
+              >
+                {sibukZona === z.id ? "Mengambil GPS…" : "Set titik dari GPS saya"}
+              </button>
+            </div>
+          ))}
+          {zonas.length === 0 && (
+            <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Belum ada zona.</div>
+          )}
+        </div>
       </div>
 
       <div className="card3d" style={{ marginTop: 16, padding: 18 }}>

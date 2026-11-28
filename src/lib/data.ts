@@ -50,6 +50,13 @@ export async function simpanZona(z: {
   else await addDoc(collection(db, "zona"), data);
 }
 
+/** Set titik pusat (dan radius) zona — dipakai admin dari lokasi RW sebenarnya. */
+export async function updateTitikZona(id: string, lat: number, lng: number, radiusMeter?: number) {
+  const data: Record<string, unknown> = { titik_pusat: { lat, lng } };
+  if (radiusMeter) data.radius_meter = radiusMeter;
+  await updateDoc(doc(db, "zona", id), data);
+}
+
 // ---------- PETUGAS ----------
 export interface Petugas {
   id: string;
