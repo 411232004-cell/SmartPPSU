@@ -6,7 +6,7 @@ import {
   listPetugas, Petugas,
 } from "@/lib/data";
 import { JADWAL_SHIFT, LABEL_JENIS, URUTAN_JENIS, Shift } from "@/lib/absensi";
-import { namaRegu, REGU } from "@/lib/regu";
+import { namaRegu } from "@/lib/regu";
 import { useAuth } from "@/lib/auth";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -31,9 +31,10 @@ export default function JadwalPage() {
   const [petugas, setPetugas] = useState<Petugas[]>([]);
   const [hariDipilih, setHariDipilih] = useState<string | null>(null);
   const [pesan, setPesan] = useState("");
-  // pola mingguan massal: indeks 0=Senin..6=Minggu
+  // pola mingguan massal: indeks 0=Senin..6=Minggu, target per personel
   const [pola, setPola] = useState<Shift[]>(["pagi", "pagi", "pagi", "pagi", "pagi", "pagi", "libur"]);
-  const [polaRegu, setPolaRegu] = useState(""); // "" = semua petugas aktif
+  const [polaTarget, setPolaTarget] = useState(""); // "" = semua petugas aktif, selain itu id personel
+  const [polaBulan, setPolaBulan] = useState(1); // rotasi biasanya per bulan, bisa 2–3 bulan sekaligus
   const [polaSibuk, setPolaSibuk] = useState(false);
 
   const prefix = `${tahun}-${String(bulan + 1).padStart(2, "0")}`;
@@ -91,28 +92,36 @@ export default function JadwalPage() {
     muatJadwal();
   };
 
-  // terapkan pola mingguan ke semua tanggal bulan ini untuk target petugas
+  // terapkan pola mingguan ke target personel — 1 sampai 3 bulan sekaligus
   const terapkanPola = async () => {
-    const target = petugas.filter((p) => p.aktif && (!polaRegu || p.regu === polaRegu));
+    const target = petugas.filter((p) => p.aktif && (!polaTarget || p.id === polaTarget));
     if (!target.length) {
       setPesan("Tidak ada petugas aktif pada target yang dipilih.");
       return;
     }
+    const namaTgt = polaTarget ? target[0]?.nama : `${target.length} petugas`;
     if (!confirm(
-      `Terapkan pola ini ke ${target.length} petugas untuk seluruh tanggal ${BULAN[bulan]} ${tahun}?\n` +
+      `Terapkan pola ini ke ${namaTgt} untuk ${polaBulan} bulan mulai ${BULAN[bulan]} ${tahun}?\n` +
       `Jadwal yang sudah diatur manual akan ditimpa sesuai pola.`
     )) return;
     setPolaSibuk(true);
     try {
       const items: { tanggal: string; p: Petugas; shift: Shift }[] = [];
-      for (let d = 1; d <= jmlHari; d++) {
-        const tgl = `${prefix}-${String(d).padStart(2, "0")}`;
-        const wd = (new Date(tahun, bulan, d).getDay() + 6) % 7; // Senin=0
-        const shift = pola[wd];
-        target.forEach((p) => items.push({ tanggal: tgl, p, shift }));
+      for (let m = 0; m < polaBulan; m++) {
+        const bln = bulan + m;
+        const th = tahun + Math.floor(bln / 12);
+        const bl = bln % 12;
+        const pfx = `${th}-${String(bl + 1).padStart(2, "0")}`;
+        const jml = new Date(th, bl + 1, 0).getDate();
+        for (let d = 1; d <= jml; d++) {
+          const tgl = `${pfx}-${String(d).padStart(2, "0")}`;
+          const wd = (new Date(th, bl, d).getDay() + 6) % 7; // Senin=0
+          const shift = pola[wd];
+          target.forEach((p) => items.push({ tanggal: tgl, p, shift }));
+        }
       }
       await setJadwalMassal(items);
-      setPesan(`✓ Pola diterapkan — ${items.length} jadwal ditulis untuk ${target.length} petugas.`);
+      setPesan(`✓ Pola diterapkan — ${items.length} jadwal untuk ${namaTgt} (${polaBulan} bulan).`);
       muatJadwal();
     } catch (e) {
       setPesan(`Gagal: ${e instanceof Error ? e.message : e}`);
@@ -235,8 +244,8 @@ export default function JadwalPage() {
         <div className="card3d" style={{ marginTop: 14, padding: 18 }}>
           <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Pola Shift Mingguan</div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 12 }}>
-            Atur pola Senin–Minggu sekali, lalu terapkan ke <b>{BULAN[bulan]} {tahun}</b> —
-            untuk semua petugas atau per regu. Tidak perlu klik tanggal satu per satu.
+            Pilih <b>personel</b>, atur pola Senin–Minggu sekali, lalu terapkan ke 1–3 bulan —
+            cocok untuk rotasi shift bulanan kelurahan. Tidak perlu klik tanggal satu per satu.
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(96px, 1fr))", gap: 8 }}>
             {["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"].map((h, i) => (
@@ -260,15 +269,26 @@ export default function JadwalPage() {
           </div>
           <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
             <select
-              value={polaRegu}
-              onChange={(e) => setPolaRegu(e.target.value)}
+              value={polaTarget}
+              onChange={(e) => setPolaTarget(e.target.value)}
               style={{ padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit" }}
             >
               <option value="">Semua petugas aktif</option>
-              {REGU.map((r) => <option key={r.id} value={r.id}>Regu {r.nama}</option>)}
+              {petugas.filter((p) => p.aktif).map((p) => (
+                <option key={p.id} value={p.id}>{p.nama} — {namaRegu(p.regu)}</option>
+              ))}
+            </select>
+            <select
+              value={polaBulan}
+              onChange={(e) => setPolaBulan(parseInt(e.target.value))}
+              style={{ padding: "8px 10px", borderRadius: 9, border: "1px solid var(--border)", background: "var(--surface)", color: "var(--text)", fontSize: 13, fontFamily: "inherit" }}
+            >
+              <option value={1}>1 bulan ({BULAN[bulan]})</option>
+              <option value={2}>2 bulan</option>
+              <option value={3}>3 bulan</option>
             </select>
             <button className="btn3d" style={{ padding: "9px 16px", fontSize: 13 }} disabled={polaSibuk} onClick={terapkanPola}>
-              {polaSibuk ? "Menulis jadwal…" : `Terapkan ke ${BULAN[bulan]}`}
+              {polaSibuk ? "Menulis jadwal…" : "Terapkan"}
             </button>
             <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>
               per minggu: {pola.filter((s) => s === "pagi").length}× pagi, {pola.filter((s) => s === "sore").length}× sore, {pola.filter((s) => s === "libur").length}× OFF

@@ -185,59 +185,7 @@ export default function PenugasanPage() {
 
       {pesan && <div className="card3d" style={{ marginTop: 12, padding: 10, fontSize: 13, fontWeight: 600, color: pesan.startsWith("✓") ? "var(--green-deep)" : "var(--danger)" }}>{pesan}</div>}
 
-      <div className="card3d" style={{ marginTop: 16, padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>＋ Buat penugasan</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
-          <select style={inputStyle} value={tugasForm.petugas_id} onChange={(e) => {
-            const p = petugas.find((x) => x.id === e.target.value);
-            setTugasForm({ ...tugasForm, petugas_id: e.target.value, zona_id: p?.zona_id || "" });
-          }}>
-            <option value="">— Petugas —</option>
-            {petugas.filter(p => p.aktif).map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
-          </select>
-          <input style={inputStyle} placeholder="Jenis pekerjaan (mis. Penyapuan jalan)" value={tugasForm.jenis_pekerjaan} onChange={(e) => setTugasForm({ ...tugasForm, jenis_pekerjaan: e.target.value })} />
-          <input style={inputStyle} placeholder="Deskripsi / lokasi detail" value={tugasForm.deskripsi} onChange={(e) => setTugasForm({ ...tugasForm, deskripsi: e.target.value })} />
-          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Tanggal tugas
-            <input style={inputStyle} type="date" value={tugasForm.tanggal_tugas} onChange={(e) => setTugasForm({ ...tugasForm, tanggal_tugas: e.target.value })} />
-          </label>
-          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Target selesai (opsional)
-            <input style={inputStyle} type="date" value={tugasForm.target_selesai} onChange={(e) => setTugasForm({ ...tugasForm, target_selesai: e.target.value })} />
-          </label>
-          <select style={inputStyle} value={tugasForm.prioritas} onChange={(e) => setTugasForm({ ...tugasForm, prioritas: e.target.value as "normal" })}>
-            <option value="rendah">Prioritas rendah</option>
-            <option value="normal">Prioritas normal</option>
-            <option value="tinggi">Prioritas tinggi</option>
-          </select>
-          <select style={inputStyle} value={tugasForm.zona_id} onChange={(e) => setTugasForm({ ...tugasForm, zona_id: e.target.value })}>
-            <option value="">— Zona (default zona petugas) —</option>
-            {zonas.map((z) => <option key={z.id} value={z.id}>{z.nama}</option>)}
-          </select>
-        </div>
-        <button className="btn3d" style={{ marginTop: 14 }} onClick={buatTugas}>Buat Penugasan</button>
-      </div>
-
-      <div className="card3d" style={{ marginTop: 16, padding: 20 }}>
-        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>＋ Tambah zona geofencing</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
-          <input style={inputStyle} placeholder="Nama zona (mis. Zona RW 05)" value={zonaForm.nama} onChange={(e) => setZonaForm({ ...zonaForm, nama: e.target.value })} />
-          <input style={inputStyle} placeholder="Alamat/wilayah" value={zonaForm.alamat} onChange={(e) => setZonaForm({ ...zonaForm, alamat: e.target.value })} />
-          <input style={inputStyle} placeholder="Latitude titik pusat" value={zonaForm.lat} onChange={(e) => setZonaForm({ ...zonaForm, lat: e.target.value })} />
-          <input style={inputStyle} placeholder="Longitude titik pusat" value={zonaForm.lng} onChange={(e) => setZonaForm({ ...zonaForm, lng: e.target.value })} />
-          <input style={inputStyle} placeholder="Radius (meter)" value={zonaForm.radiusMeter} onChange={(e) => setZonaForm({ ...zonaForm, radiusMeter: e.target.value })} />
-          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Jam masuk
-            <input style={inputStyle} type="time" value={zonaForm.jamMasuk} onChange={(e) => setZonaForm({ ...zonaForm, jamMasuk: e.target.value })} />
-          </label>
-          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Jam pulang
-            <input style={inputStyle} type="time" value={zonaForm.jamPulang} onChange={(e) => setZonaForm({ ...zonaForm, jamPulang: e.target.value })} />
-          </label>
-        </div>
-        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>
-          Tips: ambil koordinat dari Google Maps (klik kanan titik → salin koordinat).
-        </div>
-        <button className="btn3d green" style={{ marginTop: 12 }} onClick={buatZona}>Simpan Zona</button>
-      </div>
-
-      {/* daftar zona: set titik pusat & radius langsung dari lokasi admin */}
+      {/* titik pusat zona: peta + CRUD — di atas supaya langsung terlihat */}
       <div className="card3d" style={{ marginTop: 16, padding: 18 }}>
         <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Titik pusat zona geofencing</div>
         <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
@@ -374,6 +322,59 @@ export default function PenugasanPage() {
           ))}
           {tugas.length === 0 && <div style={{ fontSize: 13, color: "var(--text-muted)" }}>Belum ada penugasan.</div>}
         </div>
+      </div>
+
+      {/* form di bawah — peta & daftar tugas tetap jadi fokus utama */}
+      <div className="card3d" style={{ marginTop: 16, padding: 20 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>＋ Buat penugasan</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 10 }}>
+          <select style={inputStyle} value={tugasForm.petugas_id} onChange={(e) => {
+            const p = petugas.find((x) => x.id === e.target.value);
+            setTugasForm({ ...tugasForm, petugas_id: e.target.value, zona_id: p?.zona_id || "" });
+          }}>
+            <option value="">— Petugas —</option>
+            {petugas.filter(p => p.aktif).map((p) => <option key={p.id} value={p.id}>{p.nama}</option>)}
+          </select>
+          <input style={inputStyle} placeholder="Jenis pekerjaan (mis. Penyapuan jalan)" value={tugasForm.jenis_pekerjaan} onChange={(e) => setTugasForm({ ...tugasForm, jenis_pekerjaan: e.target.value })} />
+          <input style={inputStyle} placeholder="Deskripsi / lokasi detail" value={tugasForm.deskripsi} onChange={(e) => setTugasForm({ ...tugasForm, deskripsi: e.target.value })} />
+          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Tanggal tugas
+            <input style={inputStyle} type="date" value={tugasForm.tanggal_tugas} onChange={(e) => setTugasForm({ ...tugasForm, tanggal_tugas: e.target.value })} />
+          </label>
+          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Target selesai (opsional)
+            <input style={inputStyle} type="date" value={tugasForm.target_selesai} onChange={(e) => setTugasForm({ ...tugasForm, target_selesai: e.target.value })} />
+          </label>
+          <select style={inputStyle} value={tugasForm.prioritas} onChange={(e) => setTugasForm({ ...tugasForm, prioritas: e.target.value as "normal" })}>
+            <option value="rendah">Prioritas rendah</option>
+            <option value="normal">Prioritas normal</option>
+            <option value="tinggi">Prioritas tinggi</option>
+          </select>
+          <select style={inputStyle} value={tugasForm.zona_id} onChange={(e) => setTugasForm({ ...tugasForm, zona_id: e.target.value })}>
+            <option value="">— Zona (default zona petugas) —</option>
+            {zonas.map((z) => <option key={z.id} value={z.id}>{z.nama}</option>)}
+          </select>
+        </div>
+        <button className="btn3d" style={{ marginTop: 14 }} onClick={buatTugas}>Buat Penugasan</button>
+      </div>
+
+      <div className="card3d" style={{ marginTop: 16, padding: 20 }}>
+        <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 12 }}>＋ Tambah zona geofencing</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 10 }}>
+          <input style={inputStyle} placeholder="Nama zona (mis. Zona RW 05)" value={zonaForm.nama} onChange={(e) => setZonaForm({ ...zonaForm, nama: e.target.value })} />
+          <input style={inputStyle} placeholder="Alamat/wilayah" value={zonaForm.alamat} onChange={(e) => setZonaForm({ ...zonaForm, alamat: e.target.value })} />
+          <input style={inputStyle} placeholder="Latitude titik pusat" value={zonaForm.lat} onChange={(e) => setZonaForm({ ...zonaForm, lat: e.target.value })} />
+          <input style={inputStyle} placeholder="Longitude titik pusat" value={zonaForm.lng} onChange={(e) => setZonaForm({ ...zonaForm, lng: e.target.value })} />
+          <input style={inputStyle} placeholder="Radius (meter)" value={zonaForm.radiusMeter} onChange={(e) => setZonaForm({ ...zonaForm, radiusMeter: e.target.value })} />
+          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Jam masuk
+            <input style={inputStyle} type="time" value={zonaForm.jamMasuk} onChange={(e) => setZonaForm({ ...zonaForm, jamMasuk: e.target.value })} />
+          </label>
+          <label style={{ fontSize: 12, color: "var(--text-muted)" }}>Jam pulang
+            <input style={inputStyle} type="time" value={zonaForm.jamPulang} onChange={(e) => setZonaForm({ ...zonaForm, jamPulang: e.target.value })} />
+          </label>
+        </div>
+        <div style={{ fontSize: 12, color: "var(--text-faint)", marginTop: 8 }}>
+          Tips: ambil koordinat dari Google Maps (klik kanan titik → salin koordinat).
+        </div>
+        <button className="btn3d green" style={{ marginTop: 12 }} onClick={buatZona}>Simpan Zona</button>
       </div>
     </div>
   );
