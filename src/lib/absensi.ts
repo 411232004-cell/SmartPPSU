@@ -51,9 +51,10 @@ export const LABEL_JENIS: Record<JenisAbsen, string> = {
   pulang: "Absen Pulang",
 };
 
+// Tombol absen yang tampil ke petugas — mulai istirahat dihapus,
+// cukup: masuk → kembali kerja (sehabis istirahat) → pulang
 export const URUTAN_JENIS: JenisAbsen[] = [
   "masuk",
-  "istirahat_mulai",
   "istirahat_selesai",
   "pulang",
 ];

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { subscribeAbsensiHariIni, subscribeProgresTerbaru, listPetugas } from "@/lib/data";
+import { LABEL_JENIS, JenisAbsen } from "@/lib/absensi";
 
 function fmtWaktu(ts: { toDate?: () => Date } | undefined) {
   try {
@@ -22,7 +23,8 @@ function DashboardKasi() {
     return () => { u1(); u2(); };
   }, []);
 
-  const hadir = new Set(absensi.filter((a) => a.jenis === "masuk").map((a) => a.petugas_id)).size;
+  const perJenis = (jenis: JenisAbsen) =>
+    new Set(absensi.filter((a) => a.jenis === jenis).map((a) => a.petugas_id)).size;
   const luarZona = absensi.filter((a) => a.dalam_zona === false).length;
 
   return (
@@ -30,8 +32,9 @@ function DashboardKasi() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 14, marginTop: 20 }}>
         {[
           { label: "Petugas aktif", value: String(jmlPetugas) },
-          { label: "Sudah absen masuk", value: `${hadir} orang`, accent: true },
-          { label: "Absensi hari ini", value: `${absensi.length} record` },
+          { label: "Absen masuk", value: `${perJenis("masuk")} orang`, accent: true },
+          { label: "Absen istirahat", value: `${perJenis("istirahat_selesai")} orang` },
+          { label: "Absen pulang", value: `${perJenis("pulang")} orang` },
           { label: "⚠ Luar zona", value: `${luarZona} record`, danger: luarZona > 0 },
         ].map((s) => (
           <div key={s.label} className="card3d" style={{ padding: 16 }}>
@@ -59,7 +62,8 @@ function DashboardKasi() {
                   {(a.nama_petugas as string) || (a.petugas_id as string)}
                 </div>
                 <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                  {String(a.jenis).replace("_", " ")} • {fmtWaktu(a.waktu_server as never)} • {a.jarak_meter as number} m dari zona
+                  {LABEL_JENIS[a.jenis as JenisAbsen] || String(a.jenis)} • {fmtWaktu(a.waktu_server as never)}
+                  {typeof a.jarak_meter === "number" ? ` • ${a.jarak_meter} m dari zona` : " • bebas GPS"}
                 </div>
               </div>
               <span style={{ fontSize: 11, fontWeight: 800, color: a.dalam_zona ? "var(--green-deep)" : "var(--danger)" }}>

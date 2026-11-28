@@ -60,7 +60,7 @@ export default function PenilaianPage() {
       });
       const hariMasuk = Object.keys(perTanggal).filter((t) => perTanggal[t].has("masuk"));
       const hariLengkap = hariMasuk.filter((t) =>
-        perTanggal[t].has("pulang") && perTanggal[t].has("istirahat_mulai") && perTanggal[t].has("istirahat_selesai")
+        perTanggal[t].has("pulang") && perTanggal[t].has("istirahat_selesai")
       );
 
       const masuk = rows.filter((r) => r.jenis === "masuk");

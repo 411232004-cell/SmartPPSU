@@ -50,7 +50,7 @@ export default function MonevPage() {
     };
 
     const hadir = hitung(absSnap, "jenis", "masuk");
-    const istirahat = hitung(absSnap, "jenis", "istirahat_mulai");
+    const istirahat = hitung(absSnap, "jenis", "istirahat_selesai");
     const progres = hitung(progresSnap, "petugas_id");
     const kendala = hitung(kendalaSnap, "petugas_id");
     const tSelesai = hitung(tugasSnap, "petugas_id");
